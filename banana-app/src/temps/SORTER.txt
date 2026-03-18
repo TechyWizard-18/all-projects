@@ -1,0 +1,2121 @@
+// //
+// //
+// // import React, { useState, useEffect } from "react";
+// // import { View, Text, Button, StyleSheet, Alert, ScrollView, TextInput, ActivityIndicator, TouchableOpacity } from "react-native";
+// // // 1. Import the new auth/db instances and firestore for FieldValue
+// // import { auth, db } from "./firebase";
+// // import firestore from '@react-native-firebase/firestore';
+// // import { CameraView } from "expo-camera";
+// //
+// // // A reusable component for our new input with suggestions
+// // const SuggestionInput = ({ label, value, suggestions, onValueChange, onSuggestionPress }) => {
+// //     return (
+// //         <View style={styles.inputGroup}>
+// //             <Text style={styles.label}>{label}:</Text>
+// //             <TextInput
+// //                 style={styles.input}
+// //                 value={value}
+// //                 onChangeText={onValueChange}
+// //                 placeholder={`Type or select a ${label.toLowerCase()}`}
+// //             />
+// //             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsContainer}>
+// //                 {suggestions.map(item => (
+// //                     <TouchableOpacity key={item} style={styles.suggestionChip} onPress={() => onSuggestionPress(item)}>
+// //                         <Text style={styles.suggestionText}>{item}</Text>
+// //                     </TouchableOpacity>
+// //                 ))}
+// //             </ScrollView>
+// //         </View>
+// //     );
+// // };
+// //
+// //
+// // export default function SorterDashboard() {
+// //     const [view, setView] = useState("dashboard");
+// //     const [scannedPacks, setScannedPacks] = useState([]);
+// //     const [availableBatches, setAvailableBatches] = useState([]);
+// //     const [selectedBatchId, setSelectedBatchId] = useState(null);
+// //     const [packDetails, setPackDetails] = useState({});
+// //     const [dropdowns, setDropdowns] = useState({ brands: [], materials: [], colors: [] });
+// //     const [isLoading, setIsLoading] = useState(false);
+// //     const [linkedPacksSummary, setLinkedPacksSummary] = useState(null);
+// //
+// //     // --- DATA FETCHING (UPDATED SYNTAX) ---
+// //     useEffect(() => {
+// //         const fetchDropdownData = async () => {
+// //             try {
+// //                 const docRef = db.collection("appConfig").doc("dropdowns");
+// //                 const docSnap = await docRef.get();
+// //                 if (docSnap.exists) {
+// //                     setDropdowns(docSnap.data());
+// //                 } else {
+// //                     console.error("Dropdown configuration document not found!");
+// //                     Alert.alert("Error", "Critical configuration data is missing. Please check Firestore setup.");
+// //                 }
+// //             } catch (error) {
+// //                 console.error("Error fetching dropdowns:", error);
+// //                 Alert.alert("Error", "Could not load configuration data.");
+// //             }
+// //         };
+// //         fetchDropdownData();
+// //     }, []);
+// //
+// //     const fetchBatches = async () => {
+// //         setIsLoading(true);
+// //         try {
+// //             const querySnapshot = await db.collection("batches").get();
+// //             const batches = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+// //             setAvailableBatches(batches);
+// //             setView('selectBatch');
+// //         } catch (error) {
+// //             console.error("Error fetching batches:", error);
+// //             Alert.alert("Error", "Could not fetch available batches.");
+// //         }
+// //         setIsLoading(false);
+// //     };
+// //
+// //     // --- WORKFLOW & FORM LOGIC ---
+// //     const handleLinkPacksPress = () => {
+// //         resetSortingState();
+// //         setView('scanPacks');
+// //     };
+// //
+// //     const handlePacksScanned = () => {
+// //         if (scannedPacks.length === 0) {
+// //             Alert.alert("No Packs Scanned", "Please scan at least one sorted pack QR code.");
+// //             return;
+// //         }
+// //         let initialDetails = {};
+// //         scannedPacks.forEach(packId => {
+// //             initialDetails[packId] = { weight: "", brand: "", material: "", color: "" };
+// //         });
+// //         setPackDetails(initialDetails);
+// //         fetchBatches();
+// //     };
+// //
+// //     const handleBatchSelected = (batchId) => {
+// //         setSelectedBatchId(batchId);
+// //         setView('packDetails');
+// //     };
+// //
+// //     const handleDetailChange = (packId, field, value) => {
+// //         setPackDetails(prev => ({
+// //             ...prev,
+// //             [packId]: { ...prev[packId], [field]: value }
+// //         }));
+// //     };
+// //
+// //     // --- DATA SAVING (UPDATED SYNTAX) ---
+// //     const saveNewSuggestions = async () => {
+// //         const newSuggestions = { brands: new Set(), materials: new Set(), colors: new Set() };
+// //
+// //         for (const packId of scannedPacks) {
+// //             const details = packDetails[packId];
+// //             if (details.brand && !dropdowns.brands.includes(details.brand)) newSuggestions.brands.add(details.brand);
+// //             if (details.material && !dropdowns.materials.includes(details.material)) newSuggestions.materials.add(details.material);
+// //             if (details.color && !dropdowns.colors.includes(details.color)) newSuggestions.colors.add(details.color);
+// //         }
+// //
+// //         if (newSuggestions.brands.size === 0 && newSuggestions.materials.size === 0 && newSuggestions.colors.size === 0) return;
+// //
+// //         try {
+// //             const dropdownsRef = db.collection("appConfig").doc("dropdowns");
+// //             await dropdownsRef.update({
+// //                 brands: firestore.FieldValue.arrayUnion(...Array.from(newSuggestions.brands)),
+// //                 materials: firestore.FieldValue.arrayUnion(...Array.from(newSuggestions.materials)),
+// //                 colors: firestore.FieldValue.arrayUnion(...Array.from(newSuggestions.colors)),
+// //             });
+// //         } catch (error) {
+// //             console.error("Error saving new suggestions:", error);
+// //         }
+// //     };
+// //
+// //     const handleSubmitPackDetails = async () => {
+// //         for (const packId of scannedPacks) {
+// //             const details = packDetails[packId];
+// //             if (!details.weight || !details.brand || !details.material || !details.color) {
+// //                 Alert.alert("Missing Information", `Please fill in all details for Pack ${packId}.`);
+// //                 return;
+// //             }
+// //         }
+// //
+// //         setIsLoading(true);
+// //         try {
+// //             const firestoreBatch = db.batch();
+// //             const sortedPacksCollection = db.collection("sortedPacks");
+// //             const summaryData = [];
+// //             const currentTime = new Date();
+// //
+// //             for (const packId of scannedPacks) {
+// //                 const details = packDetails[packId];
+// //                 const newPackRef = sortedPacksCollection.doc(packId);
+// //                 firestoreBatch.set(newPackRef, {
+// //                     originalBatchId: selectedBatchId,
+// //                     weight: parseFloat(details.weight),
+// //                     brand: details.brand,
+// //                     material: details.material,
+// //                     color: details.color,
+// //                     sortedAt: firestore.FieldValue.serverTimestamp(),
+// //                     sortedBy: auth.currentUser.email,
+// //                 });
+// //
+// //                 summaryData.push({
+// //                     packId,
+// //                     ...details,
+// //                     fromBatch: selectedBatchId,
+// //                     date: currentTime.toLocaleDateString(),
+// //                     time: currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+// //                 });
+// //             }
+// //
+// //             await firestoreBatch.commit();
+// //             await saveNewSuggestions();
+// //
+// //             setLinkedPacksSummary(summaryData);
+// //             setView('success');
+// //
+// //         } catch (error) {
+// //             console.error("Error saving sorted packs:", error);
+// //             Alert.alert("Error", "Could not save pack details.");
+// //         }
+// //         setIsLoading(false);
+// //     };
+// //
+// //     const resetSortingState = () => {
+// //         setScannedPacks([]);
+// //         setSelectedBatchId(null);
+// //         setPackDetails({});
+// //         setLinkedPacksSummary(null);
+// //     };
+// //
+// //     const handleDone = () => {
+// //         resetSortingState();
+// //         setView('dashboard');
+// //     }
+// //
+// //     // --- RENDER VIEWS ---
+// //
+// //     if (view === 'dashboard') {
+// //         return (
+// //             <View style={styles.container}>
+// //                 <Text style={styles.title}>📦 Sorter Dashboard</Text>
+// //                 <View style={styles.buttonContainer}>
+// //                     <Button title="Link Sorted Packs" onPress={handleLinkPacksPress} />
+// //                 </View>
+// //                 <View style={styles.logoutButton}>
+// //                     <Button title="Logout" onPress={() => auth.signOut()} color="#c0392b" />
+// //                 </View>
+// //             </View>
+// //         );
+// //     }
+// //
+// //     if (view === 'success') {
+// //         return (
+// //             <View style={styles.container}>
+// //                 <Text style={styles.title}>✅ Packs Linked!</Text>
+// //                 <ScrollView>
+// //                     {linkedPacksSummary?.map(pack => (
+// //                         <View key={pack.packId} style={styles.summaryCard}>
+// //                             <Text style={styles.summaryPackId}>{pack.packId}</Text>
+// //                             <View style={styles.summaryRow}>
+// //                                 <Text style={styles.summaryLabel}>Date:</Text>
+// //                                 <Text style={styles.summaryValue}>{`${pack.date} at ${pack.time}`}</Text>
+// //                             </View>
+// //                             <View style={styles.summaryRow}>
+// //                                 <Text style={styles.summaryLabel}>Brand:</Text>
+// //                                 <Text style={styles.summaryValue}>{pack.brand}</Text>
+// //                             </View>
+// //                             <View style={styles.summaryRow}>
+// //                                 <Text style={styles.summaryLabel}>Weight:</Text>
+// //                                 <Text style={styles.summaryValue}>{`${pack.weight} kg`}</Text>
+// //                             </View>
+// //                             <View style={styles.summaryRow}>
+// //                                 <Text style={styles.summaryLabel}>Material:</Text>
+// //                                 <Text style={styles.summaryValue}>{pack.material}</Text>
+// //                             </View>
+// //                             <View style={styles.summaryRow}>
+// //                                 <Text style={styles.summaryLabel}>Colour:</Text>
+// //                                 <Text style={styles.summaryValue}>{pack.color}</Text>
+// //                             </View>
+// //                             <View style={styles.summaryRow}>
+// //                                 <Text style={styles.summaryLabel}>From Batch:</Text>
+// //                                 <Text style={styles.summaryValue}>{`${pack.fromBatch.substring(0, 10)}...`}</Text>
+// //                             </View>
+// //                         </View>
+// //                     ))}
+// //                 </ScrollView>
+// //                 <View style={styles.buttonContainer}>
+// //                     <Button title="Done" onPress={handleDone} />
+// //                 </View>
+// //             </View>
+// //         );
+// //     }
+// //
+// //
+// //     if (view === 'scanPacks') {
+// //         return (
+// //             <CameraView onBarcodeScanned={({ data }) => !scannedPacks.includes(data) && setScannedPacks(prev => [...prev, data])} style={StyleSheet.absoluteFillObject}>
+// //                 <View style={styles.scannerOverlay}>
+// //                     <Text style={styles.scannerText}>Scan All Sorted Pack QR Labels</Text>
+// //                     <View style={styles.scannerBox} />
+// //                     <View style={styles.scannedItemsContainer}>
+// //                         <Text style={styles.scannerProgress}>Scanned: {scannedPacks.length}</Text>
+// //                         {scannedPacks.length > 0 && (
+// //                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scannedItemsScroll}>
+// //                                 {scannedPacks.map(p => <View key={p} style={styles.scannedItem}><Text style={styles.scannedItemText}>{p}</Text></View>)}
+// //                             </ScrollView>
+// //                         )}
+// //                     </View>
+// //                     <View style={styles.scannerButtons}>
+// //                         <Button title="Cancel" onPress={() => setView('dashboard')} color="#7f8c8d" />
+// //                         <View style={{width: 20}} />
+// //                         <Button title="Next" onPress={handlePacksScanned} />
+// //                     </View>
+// //                 </View>
+// //             </CameraView>
+// //         );
+// //     }
+// //
+// //     if (view === 'selectBatch') {
+// //         return (
+// //             <View style={styles.container}>
+// //                 <Text style={styles.title}>Select Batch to Link</Text>
+// //                 {isLoading ? <ActivityIndicator size="large" /> : (
+// //                     <ScrollView>
+// //                         {availableBatches.length > 0 ? availableBatches.map(batch => (
+// //                             <TouchableOpacity key={batch.id} style={styles.batchItem} onPress={() => handleBatchSelected(batch.id)}>
+// //                                 <Text style={styles.batchId}>{`Batch # ${batch.id.substring(0, 10)}...`}</Text>
+// //                                 <Text>{`Source: ${batch.source}`}</Text>
+// //                                 <Text>{`Date: ${batch.dateReceived?.toDate().toLocaleDateString()}`}</Text>
+// //                             </TouchableOpacity>
+// //                         )) : <Text style={styles.noItemsText}>No batches found. Please create one from the Admin dashboard.</Text>}
+// //                     </ScrollView>
+// //                 )}
+// //             </View>
+// //         );
+// //     }
+// //
+// //     if (view === 'packDetails') {
+// //         return (
+// //             <View style={styles.container}>
+// //                 <Text style={styles.title}>Enter Pack Details</Text>
+// //                 <ScrollView>
+// //                     {scannedPacks.map(packId => (
+// //                         <View key={packId} style={styles.packDetailItem}>
+// //                             <Text style={styles.packIdText}>{`Pack: ${packId}`}</Text>
+// //                             <View style={styles.inputRow}>
+// //                                 <Text style={styles.label}>Weight (kg):</Text>
+// //                                 <TextInput style={styles.input} value={packDetails[packId]?.weight} onChangeText={(text) => handleDetailChange(packId, 'weight', text)} keyboardType="numeric" placeholder="e.g., 5.5"/>
+// //                             </View>
+// //                             <SuggestionInput
+// //                                 label="Brand"
+// //                                 value={packDetails[packId]?.brand}
+// //                                 suggestions={dropdowns.brands}
+// //                                 onValueChange={(text) => handleDetailChange(packId, 'brand', text)}
+// //                                 onSuggestionPress={(item) => handleDetailChange(packId, 'brand', item)}
+// //                             />
+// //                             <SuggestionInput
+// //                                 label="Material"
+// //                                 value={packDetails[packId]?.material}
+// //                                 suggestions={dropdowns.materials}
+// //                                 onValueChange={(text) => handleDetailChange(packId, 'material', text)}
+// //                                 onSuggestionPress={(item) => handleDetailChange(packId, 'material', item)}
+// //                             />
+// //                             <SuggestionInput
+// //                                 label="Color"
+// //                                 value={packDetails[packId]?.color}
+// //                                 suggestions={dropdowns.colors}
+// //                                 onValueChange={(text) => handleDetailChange(packId, 'color', text)}
+// //                                 onSuggestionPress={(item) => handleDetailChange(packId, 'color', item)}
+// //                             />
+// //                         </View>
+// //                     ))}
+// //                 </ScrollView>
+// //                 <Button title={isLoading ? "Saving..." : "Submit Details"} onPress={handleSubmitPackDetails} disabled={isLoading} />
+// //             </View>
+// //         );
+// //     }
+// //
+// //     return <View style={styles.container}><ActivityIndicator size="large" /></View>
+// // }
+// //
+// // const styles = StyleSheet.create({
+// //     container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#f5f6fa' },
+// //     title: { fontSize: 24, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' },
+// //     buttonContainer: { marginVertical: 10, width: '80%', alignSelf: 'center' },
+// //     logoutButton: { marginTop: 30, width: '60%', alignSelf: 'center' },
+// //     noItemsText: { textAlign: 'center', color: '#576574', fontSize: 16 },
+// //     // Scanner
+// //     scannerOverlay: { flex: 1, justifyContent: 'space-between', alignItems: 'center', paddingVertical: 60, paddingHorizontal: 20, backgroundColor: 'rgba(0,0,0,0.7)' },
+// //     scannerText: { fontSize: 22, color: 'white', fontWeight: 'bold', textAlign: 'center', },
+// //     scannerBox: { width: 250, height: 250, borderWidth: 2, borderColor: 'white', borderRadius: 10 },
+// //     scannedItemsContainer: { height: 80, width: '100%', marginBottom: 10 },
+// //     scannerProgress: { fontSize: 18, color: 'white', textAlign: 'center', marginBottom: 5, textShadowColor: 'rgba(0, 0, 0, 0.75)', textShadowOffset: {width: -1, height: 1}, textShadowRadius: 10 },
+// //     scannedItemsScroll: { flex: 1 },
+// //     scannedItem: { backgroundColor: 'rgba(255,255,255,0.9)', padding: 10, marginHorizontal: 5, borderRadius: 5, height: 40, justifyContent: 'center' },
+// //     scannedItemText: { color: '#2f3542', fontWeight: '500' },
+// //     scannerButtons: { flexDirection: 'row', justifyContent: 'space-around', width: '100%' },
+// //     // Batch List
+// //     batchItem: { padding: 15, backgroundColor: 'white', borderRadius: 8, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 },
+// //     batchId: { fontSize: 16, fontWeight: 'bold' },
+// //     // Pack Details Form
+// //     packDetailItem: { padding: 15, backgroundColor: 'white', borderRadius: 8, marginBottom: 15, elevation: 2 },
+// //     packIdText: { fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: '#273c75' },
+// //     inputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+// //     label: { fontSize: 16, marginRight: 10, color: '#576574' },
+// //     input: { flex: 1, borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, backgroundColor: '#fff' },
+// //     // Suggestion Input
+// //     inputGroup: { marginVertical: 8 },
+// //     suggestionsContainer: { flexDirection: 'row', marginTop: 8 },
+// //     suggestionChip: { backgroundColor: '#e0e0e0', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 15, marginRight: 8 },
+// //     suggestionText: { color: '#333' },
+// //     // 6. ADDED: Styles for the new summary screen
+// //     summaryCard: {
+// //         backgroundColor: 'white',
+// //         borderRadius: 8,
+// //         padding: 15,
+// //         marginBottom: 15,
+// //         elevation: 3,
+// //         shadowColor: '#000',
+// //         shadowOffset: { width: 0, height: 2 },
+// //         shadowOpacity: 0.1,
+// //         shadowRadius: 3,
+// //     },
+// //     summaryPackId: {
+// //         fontSize: 18,
+// //         fontWeight: 'bold',
+// //         color: '#2c3e50',
+// //         marginBottom: 10,
+// //         borderBottomWidth: 1,
+// //         borderBottomColor: '#ecf0f1',
+// //         paddingBottom: 10,
+// //     },
+// //     summaryRow: {
+// //         flexDirection: 'row',
+// //         justifyContent: 'space-between',
+// //         marginBottom: 5,
+// //     },
+// //     summaryLabel: {
+// //         fontSize: 14,
+// //         color: '#7f8c8d',
+// //         fontWeight: '500',
+// //     },
+// //     summaryValue: {
+// //         fontSize: 14,
+// //         color: '#2c3e50',
+// //         fontWeight: 'bold',
+// //     },
+// // });
+// //
+//
+//
+//
+//
+// import React, { useState, useEffect } from "react";
+// import {
+//     View,
+//     Text,
+//     StyleSheet,
+//     Alert,
+//     ScrollView,
+//     TextInput,
+//     ActivityIndicator,
+//     TouchableOpacity,
+//     Image,
+//     Animated,
+//     Easing,
+// } from "react-native";
+// import { LinearGradient } from "expo-linear-gradient";
+// import auth from "@react-native-firebase/auth";
+// import firestore from "@react-native-firebase/firestore";
+// import { CameraView } from "expo-camera";
+//
+// /* ------------------------------------------------------------------ */
+// /*  Re-usable input with suggestions (no Firebase, left as-is)        */
+// /* ------------------------------------------------------------------ */
+// const SuggestionInput = ({
+//                              label,
+//                              value,
+//                              suggestions,
+//                              onValueChange,
+//                              onSuggestionPress,
+//                          }) => {
+//     return (
+//         <View style={styles.inputGroup}>
+//             <Text style={styles.label}>{label}:</Text>
+//             <TextInput
+//                 style={styles.input}
+//                 value={value}
+//                 onChangeText={onValueChange}
+//                 placeholder={`Type or select a ${label.toLowerCase()}`}
+//             />
+//             <ScrollView
+//                 horizontal
+//                 showsHorizontalScrollIndicator={false}
+//                 style={styles.suggestionsContainer}
+//             >
+//                 {suggestions.map((item) => (
+//                     <TouchableOpacity
+//                         key={item}
+//                         style={styles.suggestionChip}
+//                         onPress={() => onSuggestionPress(item)}
+//                     >
+//                         <Text style={styles.suggestionText}>{item}</Text>
+//                     </TouchableOpacity>
+//                 ))}
+//             </ScrollView>
+//         </View>
+//     );
+// };
+//
+// /* ================================================================== */
+// /*                         MAIN COMPONENT                             */
+// /* ================================================================== */
+// export default function SorterDashboard() {
+//     const [view, setView] = useState("dashboard");
+//     const [scannedPacks, setScannedPacks] = useState([]);
+//     const [availableBatches, setAvailableBatches] = useState([]);
+//     const [selectedBatchId, setSelectedBatchId] = useState(null);
+//     const [packDetails, setPackDetails] = useState({});
+//     const [dropdowns, setDropdowns] = useState({
+//         brands: [],
+//         materials: [],
+//         colors: [],
+//     });
+//     const [isLoading, setIsLoading] = useState(false);
+//     const [linkedPacksSummary, setLinkedPacksSummary] = useState(null);
+//
+//     /* --------------------  ANIMATION BOILERPLATE  -------------------- */
+//     const fadeAnim = useState(new Animated.Value(0))[0];
+//     const slideAnim = useState(new Animated.Value(50))[0];
+//     const scaleAnim = useState(new Animated.Value(0.9))[0];
+//
+//     const animateIn = () => {
+//         Animated.parallel([
+//             Animated.timing(fadeAnim, {
+//                 toValue: 1,
+//                 duration: 500,
+//                 useNativeDriver: true,
+//             }),
+//             Animated.timing(slideAnim, {
+//                 toValue: 0,
+//                 duration: 500,
+//                 easing: Easing.out(Easing.ease),
+//                 useNativeDriver: true,
+//             }),
+//             Animated.timing(scaleAnim, {
+//                 toValue: 1,
+//                 duration: 500,
+//                 easing: Easing.out(Easing.ease),
+//                 useNativeDriver: true,
+//             }),
+//         ]).start();
+//     };
+//
+//     useEffect(() => {
+//         fadeAnim.setValue(0);
+//         slideAnim.setValue(50);
+//         scaleAnim.setValue(0.9);
+//         animateIn();
+//     }, [view]);
+//
+//     /* ================================================================== */
+//     /*                          FIREBASE LOGIC                            */
+//     /* ================================================================== */
+//
+//     /* 1.  Fetch dropdown config -------------------------------------- */
+//     useEffect(() => {
+//         const fetchDropdownData = async () => {
+//             try {
+//                 const snap = await firestore()
+//                     .collection("appConfig")
+//                     .doc("dropdowns")
+//                     .get();
+//
+//                 if (snap.exists) setDropdowns(snap.data());
+//                 else {
+//                     console.error("Dropdown configuration document not found!");
+//                     Alert.alert("Error", "Critical configuration data is missing.");
+//                 }
+//             } catch (error) {
+//                 console.error("Error fetching dropdowns:", error);
+//                 Alert.alert("Error", "Could not load configuration data.");
+//             }
+//         };
+//         fetchDropdownData();
+//     }, []);
+//
+//     /* 2.  Fetch available batches ------------------------------------ */
+//     const fetchBatches = async () => {
+//         setIsLoading(true);
+//         try {
+//             const snap = await firestore().collection("batches").get();
+//             const batches = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+//             setAvailableBatches(batches);
+//             setView("selectBatch");
+//         } catch (error) {
+//             console.error("Error fetching batches:", error);
+//             Alert.alert("Error", "Could not fetch available batches.");
+//         }
+//         setIsLoading(false);
+//     };
+//
+//     /* 3.  Save new suggestions (brands/materials/colours) ------------ */
+//     const saveNewSuggestions = async () => {
+//         const newSuggestions = {
+//             brands: new Set(),
+//             materials: new Set(),
+//             colors: new Set(),
+//         };
+//
+//         scannedPacks.forEach((packId) => {
+//             const d = packDetails[packId];
+//             if (d.brand && !dropdowns.brands.includes(d.brand))
+//                 newSuggestions.brands.add(d.brand);
+//             if (d.material && !dropdowns.materials.includes(d.material))
+//                 newSuggestions.materials.add(d.material);
+//             if (d.color && !dropdowns.colors.includes(d.color))
+//                 newSuggestions.colors.add(d.color);
+//         });
+//
+//         const { brands, materials, colors } = newSuggestions;
+//         if (!brands.size && !materials.size && !colors.size) return;
+//
+//         try {
+//             const ref = firestore().collection("appConfig").doc("dropdowns");
+//             await ref.update({
+//                 brands: firestore.FieldValue.arrayUnion(...Array.from(brands)),
+//                 materials: firestore.FieldValue.arrayUnion(...Array.from(materials)),
+//                 colors: firestore.FieldValue.arrayUnion(...Array.from(colors)),
+//             });
+//         } catch (error) {
+//             console.error("Error saving new suggestions:", error);
+//         }
+//     };
+//
+//     /* 4.  Submit final pack details ---------------------------------- */
+//     const handleSubmitPackDetails = async () => {
+//         for (const packId of scannedPacks) {
+//             const d = packDetails[packId];
+//             if (!d.weight || !d.brand || !d.material || !d.color) {
+//                 Alert.alert(
+//                     "Missing Information",
+//                     `Please fill in all details for Pack ${packId}.`
+//                 );
+//                 return;
+//             }
+//         }
+//
+//         setIsLoading(true);
+//         try {
+//             const batch = firestore().batch();
+//             const summaryData = [];
+//             const now = new Date();
+//
+//             scannedPacks.forEach((packId) => {
+//                 const d = packDetails[packId];
+//                 const ref = firestore().collection("sortedPacks").doc(packId);
+//
+//                 batch.set(ref, {
+//                     originalBatchId: selectedBatchId,
+//                     weight: parseFloat(d.weight),
+//                     brand: d.brand,
+//                     material: d.material,
+//                     color: d.color,
+//                     sortedAt: firestore.FieldValue.serverTimestamp(),
+//                     sortedBy: auth().currentUser?.email,
+//                 });
+//
+//                 summaryData.push({
+//                     packId,
+//                     ...d,
+//                     fromBatch: selectedBatchId,
+//                     date: now.toLocaleDateString(),
+//                     time: now.toLocaleTimeString([], {
+//                         hour: "2-digit",
+//                         minute: "2-digit",
+//                     }),
+//                 });
+//             });
+//
+//             await batch.commit();
+//             await saveNewSuggestions();
+//             setLinkedPacksSummary(summaryData);
+//             setView("success");
+//         } catch (error) {
+//             console.error("Error saving sorted packs:", error);
+//             Alert.alert("Error", "Could not save pack details.");
+//         }
+//         setIsLoading(false);
+//     };
+//
+//     /* ------------------  WORKFLOW / STATE HELPERS  ------------------ */
+//     const handleLinkPacksPress = () => {
+//         resetSortingState();
+//         setView("scanPacks");
+//     };
+//
+//     const handlePacksScanned = () => {
+//         if (scannedPacks.length === 0) {
+//             Alert.alert(
+//                 "No Packs Scanned",
+//                 "Please scan at least one sorted pack."
+//             );
+//             return;
+//         }
+//         const initialDetails = {};
+//         scannedPacks.forEach(
+//             (packId) =>
+//                 (initialDetails[packId] = {
+//                     weight: "",
+//                     brand: "",
+//                     material: "",
+//                     color: "",
+//                 })
+//         );
+//         setPackDetails(initialDetails);
+//         fetchBatches();
+//     };
+//
+//     const handleBatchSelected = (batchId) => {
+//         setSelectedBatchId(batchId);
+//         setView("packDetails");
+//     };
+//
+//     const handleDetailChange = (packId, field, value) => {
+//         setPackDetails((prev) => ({
+//             ...prev,
+//             [packId]: { ...prev[packId], [field]: value },
+//         }));
+//     };
+//
+//     const resetSortingState = () => {
+//         setScannedPacks([]);
+//         setSelectedBatchId(null);
+//         setPackDetails({});
+//         setLinkedPacksSummary(null);
+//     };
+//
+//     /* ================================================================== */
+//     /*                             RENDERER                               */
+//     /* ================================================================== */
+//
+//     /* 1.  Dashboard -------------------------------------------------- */
+//     if (view === "dashboard") {
+//         return (
+//             <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
+//                 <Animated.View
+//                     style={[
+//                         styles.animatedContainer,
+//                         {
+//                             opacity: fadeAnim,
+//                             transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+//                         },
+//                     ]}
+//                 >
+//                     <Image
+//                         source={require("../../assets/logo2.png")}
+//                         style={styles.logo}
+//                     />
+//                     <Text style={styles.title}>Sorter Dashboard</Text>
+//
+//                     <TouchableOpacity style={styles.menuButton} onPress={handleLinkPacksPress}>
+//                         <Text style={styles.menuButtonText}>Link Sorted Packs</Text>
+//                     </TouchableOpacity>
+//
+//                     <TouchableOpacity
+//                         style={[styles.menuButton, styles.logoutButton]}
+//                         onPress={() => auth().signOut()}
+//                     >
+//                         <Text style={styles.logoutButtonText}>Logout</Text>
+//                     </TouchableOpacity>
+//                 </Animated.View>
+//             </LinearGradient>
+//         );
+//     }
+//
+//     /* 2.  Success summary ------------------------------------------- */
+//     if (view === "success") {
+//         return (
+//             <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
+//                 <Animated.View
+//                     style={[
+//                         styles.animatedContainer,
+//                         {
+//                             opacity: fadeAnim,
+//                             transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+//                         },
+//                     ]}
+//                 >
+//                     <Text style={styles.title}>✅ Packs Linked!</Text>
+//
+//                     <ScrollView style={styles.summaryScroll}>
+//                         {linkedPacksSummary?.map((pack) => (
+//                             <View key={pack.packId} style={styles.summaryCard}>
+//                                 <Text style={styles.summaryPackId}>{pack.packId}</Text>
+//
+//                                 <View style={styles.summaryRow}>
+//                                     <Text style={styles.summaryLabel}>Date:</Text>
+//                                     <Text
+//                                         style={styles.summaryValue}
+//                                     >{`${pack.date} at ${pack.time}`}</Text>
+//                                 </View>
+//
+//                                 <View style={styles.summaryRow}>
+//                                     <Text style={styles.summaryLabel}>Brand:</Text>
+//                                     <Text style={styles.summaryValue}>{pack.brand}</Text>
+//                                 </View>
+//
+//                                 <View style={styles.summaryRow}>
+//                                     <Text style={styles.summaryLabel}>Weight:</Text>
+//                                     <Text style={styles.summaryValue}>{`${pack.weight} kg`}</Text>
+//                                 </View>
+//
+//                                 <View style={styles.summaryRow}>
+//                                     <Text style={styles.summaryLabel}>Material:</Text>
+//                                     <Text style={styles.summaryValue}>{pack.material}</Text>
+//                                 </View>
+//
+//                                 <View style={styles.summaryRow}>
+//                                     <Text style={styles.summaryLabel}>Colour:</Text>
+//                                     <Text style={styles.summaryValue}>{pack.color}</Text>
+//                                 </View>
+//
+//                                 <View style={styles.summaryRow}>
+//                                     <Text style={styles.summaryLabel}>From Batch:</Text>
+//                                     <Text
+//                                         style={styles.summaryValue}
+//                                     >{`${pack.fromBatch.substring(0, 10)}...`}</Text>
+//                                 </View>
+//                             </View>
+//                         ))}
+//                     </ScrollView>
+//
+//                     <TouchableOpacity
+//                         style={styles.button}
+//                         onPress={() => {
+//                             resetSortingState();
+//                             setView("dashboard");
+//                         }}
+//                     >
+//                         <Text style={styles.buttonText}>Done</Text>
+//                     </TouchableOpacity>
+//                 </Animated.View>
+//             </LinearGradient>
+//         );
+//     }
+//
+//     /* 3.  QR scanning ----------------------------------------------- */
+//     if (view === "scanPacks") {
+//         return (
+//             <CameraView
+//                 onBarcodeScanned={({ data }) =>
+//                     !scannedPacks.includes(data) &&
+//                     setScannedPacks((prev) => [...prev, data])
+//                 }
+//                 style={StyleSheet.absoluteFillObject}
+//             >
+//                 <View style={styles.scannerOverlay}>
+//                     <Text style={styles.scannerText}>Scan All Sorted Pack QR Labels</Text>
+//                     <View style={styles.scannerBox} />
+//
+//                     <View style={styles.scannedItemsContainer}>
+//                         <Text style={styles.scannerProgress}>
+//                             Scanned: {scannedPacks.length}
+//                         </Text>
+//
+//                         {scannedPacks.length > 0 && (
+//                             <ScrollView
+//                                 horizontal
+//                                 showsHorizontalScrollIndicator={false}
+//                                 style={styles.scannedItemsScroll}
+//                             >
+//                                 {scannedPacks.map((p) => (
+//                                     <View key={p} style={styles.scannedItem}>
+//                                         <Text style={styles.scannedItemText}>{p}</Text>
+//                                     </View>
+//                                 ))}
+//                             </ScrollView>
+//                         )}
+//                     </View>
+//
+//                     <View style={styles.scannerButtons}>
+//                         <TouchableOpacity
+//                             style={[styles.button, styles.cancelButton]}
+//                             onPress={() => setView("dashboard")}
+//                         >
+//                             <Text style={styles.cancelButtonText}>Cancel</Text>
+//                         </TouchableOpacity>
+//
+//                         <TouchableOpacity style={styles.button} onPress={handlePacksScanned}>
+//                             <Text style={styles.buttonText}>Next</Text>
+//                         </TouchableOpacity>
+//                     </View>
+//                 </View>
+//             </CameraView>
+//         );
+//     }
+//
+//     /* 4.  Batch selection ------------------------------------------ */
+//     if (view === "selectBatch") {
+//         return (
+//             <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
+//                 <Animated.View
+//                     style={[
+//                         styles.animatedContainer,
+//                         {
+//                             opacity: fadeAnim,
+//                             transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+//                         },
+//                     ]}
+//                 >
+//                     <Text style={styles.formTitle}>Select Batch to Link</Text>
+//
+//                     {isLoading ? (
+//                         <ActivityIndicator size="large" color="#fff" />
+//                     ) : (
+//                         <ScrollView style={styles.batchScroll}>
+//                             {availableBatches.length > 0 ? (
+//                                 availableBatches.map((batch) => (
+//                                     <TouchableOpacity
+//                                         key={batch.id}
+//                                         style={styles.batchItem}
+//                                         onPress={() => handleBatchSelected(batch.id)}
+//                                     >
+//                                         <Text
+//                                             style={styles.batchId}
+//                                         >{`Batch # ${batch.id.substring(0, 10)}...`}</Text>
+//                                         <Text
+//                                             style={styles.batchText}
+//                                         >{`Source: ${batch.source}`}</Text>
+//                                         <Text style={styles.batchText}>{`Date: ${batch.dateReceived
+//                                             ?.toDate()
+//                                             .toLocaleDateString()}`}</Text>
+//                                     </TouchableOpacity>
+//                                 ))
+//                             ) : (
+//                                 <Text style={styles.noItemsText}>No batches found.</Text>
+//                             )}
+//                         </ScrollView>
+//                     )}
+//                 </Animated.View>
+//             </LinearGradient>
+//         );
+//     }
+//
+//     /* 5.  Pack details entry --------------------------------------- */
+//     if (view === "packDetails") {
+//         return (
+//             <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
+//                 <Animated.View
+//                     style={[
+//                         styles.animatedContainer,
+//                         {
+//                             opacity: fadeAnim,
+//                             transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+//                         },
+//                     ]}
+//                 >
+//                     <Text style={styles.formTitle}>Enter Pack Details</Text>
+//
+//                     <ScrollView style={styles.detailsScroll}>
+//                         {scannedPacks.map((packId) => (
+//                             <View key={packId} style={styles.packDetailItem}>
+//                                 <Text style={styles.packIdText}>{`Pack: ${packId}`}</Text>
+//
+//                                 <View style={styles.inputRow}>
+//                                     <Text style={styles.label}>Weight (kg):</Text>
+//                                     <TextInput
+//                                         style={styles.input}
+//                                         value={packDetails[packId]?.weight}
+//                                         onChangeText={(text) =>
+//                                             handleDetailChange(packId, "weight", text)
+//                                         }
+//                                         keyboardType="numeric"
+//                                         placeholder="e.g., 5.5"
+//                                         placeholderTextColor="#aaa"
+//                                     />
+//                                 </View>
+//
+//                                 <SuggestionInput
+//                                     label="Brand"
+//                                     value={packDetails[packId]?.brand}
+//                                     suggestions={dropdowns.brands}
+//                                     onValueChange={(text) =>
+//                                         handleDetailChange(packId, "brand", text)
+//                                     }
+//                                     onSuggestionPress={(item) =>
+//                                         handleDetailChange(packId, "brand", item)
+//                                     }
+//                                 />
+//
+//                                 <SuggestionInput
+//                                     label="Material"
+//                                     value={packDetails[packId]?.material}
+//                                     suggestions={dropdowns.materials}
+//                                     onValueChange={(text) =>
+//                                         handleDetailChange(packId, "material", text)
+//                                     }
+//                                     onSuggestionPress={(item) =>
+//                                         handleDetailChange(packId, "material", item)
+//                                     }
+//                                 />
+//
+//                                 <SuggestionInput
+//                                     label="Color"
+//                                     value={packDetails[packId]?.color}
+//                                     suggestions={dropdowns.colors}
+//                                     onValueChange={(text) =>
+//                                         handleDetailChange(packId, "color", text)
+//                                     }
+//                                     onSuggestionPress={(item) =>
+//                                         handleDetailChange(packId, "color", item)
+//                                     }
+//                                 />
+//                             </View>
+//                         ))}
+//                     </ScrollView>
+//
+//                     <TouchableOpacity
+//                         style={styles.button}
+//                         onPress={handleSubmitPackDetails}
+//                         disabled={isLoading}
+//                     >
+//                         {isLoading ? (
+//                             <ActivityIndicator color="#fff" />
+//                         ) : (
+//                             <Text style={styles.buttonText}>Submit Details</Text>
+//                         )}
+//                     </TouchableOpacity>
+//                 </Animated.View>
+//             </LinearGradient>
+//         );
+//     }
+//
+//     /* 6.  Fallback loader ------------------------------------------ */
+//     return (
+//         <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
+//             <ActivityIndicator size="large" color="#fff" />
+//         </LinearGradient>
+//     );
+// }
+//
+// /* ================================================================== */
+// /*                            STYLESHEET                              */
+// /* ================================================================== */
+// const styles = StyleSheet.create({
+//     container: { flex: 1 },
+//     animatedContainer: {
+//         flex: 1,
+//         justifyContent: "center",
+//         padding: 20,
+//     },
+//     logo: {
+//         width: 100,
+//         height: 100,
+//         resizeMode: "contain",
+//         marginBottom: 20,
+//         alignSelf: "center",
+//     },
+//     title: {
+//         fontSize: 28,
+//         fontWeight: "600",
+//         color: "#fff",
+//         marginBottom: 40,
+//         textAlign: "center",
+//         textShadowColor: "rgba(0, 0, 0, 0.3)",
+//         textShadowOffset: { width: 1, height: 1 },
+//         textShadowRadius: 3,
+//     },
+//     formTitle: {
+//         fontSize: 24,
+//         fontWeight: "bold",
+//         marginBottom: 30,
+//         textAlign: "center",
+//         color: "#fff",
+//         textShadowColor: "rgba(0, 0, 0, 0.3)",
+//         textShadowOffset: { width: 1, height: 1 },
+//         textShadowRadius: 3,
+//     },
+//     noItemsText: {
+//         textAlign: "center",
+//         color: "#fff",
+//         fontSize: 16,
+//         marginTop: 20,
+//     },
+//     menuButton: {
+//         backgroundColor: "rgba(255, 255, 255, 0.9)",
+//         paddingVertical: 18,
+//         paddingHorizontal: 25,
+//         borderRadius: 12,
+//         marginBottom: 15,
+//         shadowColor: "#000",
+//         shadowOffset: { width: 0, height: 2 },
+//         shadowOpacity: 0.2,
+//         shadowRadius: 5,
+//         elevation: 5,
+//     },
+//     menuButtonText: {
+//         fontSize: 16,
+//         fontWeight: "500",
+//         color: "#343a40",
+//         textAlign: "center",
+//     },
+//     logoutButton: {
+//         backgroundColor: "transparent",
+//         borderWidth: 1,
+//         borderColor: "#fff",
+//     },
+//     logoutButtonText: {
+//         fontSize: 16,
+//         fontWeight: "bold",
+//         color: "#fff",
+//         textAlign: "center",
+//     },
+//     button: {
+//         backgroundColor: "rgba(255, 255, 255, 0.9)",
+//         paddingVertical: 15,
+//         borderRadius: 12,
+//         alignItems: "center",
+//         width: "45%",
+//         shadowColor: "#000",
+//         shadowOffset: { width: 0, height: 2 },
+//         shadowOpacity: 0.2,
+//         shadowRadius: 5,
+//         elevation: 5,
+//     },
+//     buttonText: {
+//         color: "#333",
+//         fontSize: 16,
+//         fontWeight: "bold",
+//     },
+//     cancelButton: {
+//         backgroundColor: "transparent",
+//         borderWidth: 1,
+//         borderColor: "#fff",
+//     },
+//     cancelButtonText: {
+//         color: "#fff",
+//         fontSize: 16,
+//         fontWeight: "bold",
+//     },
+//     scannerOverlay: {
+//         flex: 1,
+//         justifyContent: "space-between",
+//         alignItems: "center",
+//         paddingVertical: 60,
+//         paddingHorizontal: 20,
+//         backgroundColor: "rgba(0,0,0,0.7)",
+//     },
+//     scannerText: {
+//         fontSize: 22,
+//         color: "white",
+//         fontWeight: "bold",
+//         textAlign: "center",
+//         textShadowColor: "rgba(0, 0, 0, 0.5)",
+//         textShadowOffset: { width: 1, height: 1 },
+//         textShadowRadius: 3,
+//     },
+//     scannerBox: {
+//         width: 250,
+//         height: 250,
+//         borderWidth: 2,
+//         borderColor: "white",
+//         borderRadius: 10,
+//     },
+//     scannedItemsContainer: {
+//         height: 80,
+//         width: "100%",
+//         marginBottom: 10,
+//     },
+//     scannerProgress: {
+//         fontSize: 18,
+//         color: "white",
+//         textAlign: "center",
+//         marginBottom: 5,
+//         textShadowColor: "rgba(0, 0, 0, 0.5)",
+//         textShadowOffset: { width: 1, height: 1 },
+//         textShadowRadius: 3,
+//     },
+//     scannedItemsScroll: { flex: 1 },
+//     scannedItem: {
+//         backgroundColor: "rgba(255,255,255,0.9)",
+//         padding: 10,
+//         marginHorizontal: 5,
+//         borderRadius: 5,
+//         height: 40,
+//         justifyContent: "center",
+//     },
+//     scannedItemText: {
+//         color: "#2f3542",
+//         fontWeight: "500",
+//     },
+//     scannerButtons: {
+//         flexDirection: "row",
+//         justifyContent: "space-between",
+//         width: "100%",
+//         paddingHorizontal: 20,
+//     },
+//     batchItem: {
+//         padding: 20,
+//         backgroundColor: "rgba(255, 255, 255, 0.9)",
+//         borderRadius: 12,
+//         marginBottom: 10,
+//         elevation: 2,
+//         shadowColor: "#000",
+//         shadowOffset: { width: 0, height: 1 },
+//         shadowOpacity: 0.2,
+//         shadowRadius: 2,
+//     },
+//     batchId: {
+//         fontSize: 16,
+//         fontWeight: "bold",
+//         color: "#333",
+//     },
+//     batchText: { color: "#555" },
+//     batchScroll: { flex: 1, marginBottom: 20 },
+//     detailsScroll: { flex: 1, marginBottom: 20 },
+//     summaryScroll: { flex: 1, marginBottom: 20, maxHeight: "70%" },
+//     packDetailItem: {
+//         padding: 20,
+//         backgroundColor: "rgba(255, 255, 255, 0.9)",
+//         borderRadius: 12,
+//         marginBottom: 15,
+//         elevation: 2,
+//     },
+//     packIdText: {
+//         fontSize: 16,
+//         fontWeight: "bold",
+//         marginBottom: 15,
+//         color: "#273c75",
+//     },
+//     inputRow: {
+//         flexDirection: "row",
+//         alignItems: "center",
+//         marginBottom: 10,
+//     },
+//     label: {
+//         fontSize: 16,
+//         marginRight: 10,
+//         color: "#333",
+//         fontWeight: "500",
+//     },
+//     input: {
+//         flex: 1,
+//         borderWidth: 1,
+//         borderColor: "#ccc",
+//         padding: 12,
+//         borderRadius: 8,
+//         backgroundColor: "#f8f9fa",
+//         color: "#333",
+//     },
+//     inputGroup: { marginVertical: 8 },
+//     suggestionsContainer: {
+//         flexDirection: "row",
+//         marginTop: 8,
+//     },
+//     suggestionChip: {
+//         backgroundColor: "#e9ecef",
+//         paddingVertical: 6,
+//         paddingHorizontal: 12,
+//         borderRadius: 15,
+//         marginRight: 8,
+//     },
+//     suggestionText: { color: "#495057" },
+//     summaryCard: {
+//         backgroundColor: "rgba(255, 255, 255, 0.9)",
+//         borderRadius: 12,
+//         padding: 20,
+//         marginBottom: 15,
+//         elevation: 3,
+//         shadowColor: "#000",
+//         shadowOffset: { width: 0, height: 2 },
+//         shadowOpacity: 0.2,
+//         shadowRadius: 3,
+//     },
+//     summaryPackId: {
+//         fontSize: 18,
+//         fontWeight: "bold",
+//         color: "#007bff",
+//         marginBottom: 15,
+//         borderBottomWidth: 1,
+//         borderBottomColor: "#ecf0f1",
+//         paddingBottom: 10,
+//     },
+//     summaryRow: {
+//         flexDirection: "row",
+//         justifyContent: "space-between",
+//         marginBottom: 8,
+//     },
+//     summaryLabel: {
+//         fontSize: 14,
+//         color: "#6c757d",
+//         fontWeight: "500",
+//     },
+//     summaryValue: {
+//         fontSize: 14,
+//         color: "#343a40",
+//         fontWeight: "bold",
+//     },
+// });
+
+
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Alert, ScrollView, TextInput, ActivityIndicator, TouchableOpacity, Image, Animated, Easing, BackHandler, Dimensions } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import { CameraView } from "expo-camera";
+
+const { width, height } = Dimensions.get('window');
+
+// A reusable component for our new input with suggestions
+const SuggestionInput = ({ label, value, suggestions, onValueChange, onSuggestionPress }) => {
+    return (
+        <View style={styles.inputGroup}>
+            <Text style={styles.label}>{label}:</Text>
+            <TextInput
+                style={styles.input}
+                value={value}
+                onChangeText={onValueChange}
+                placeholder={`Type or select a ${label.toLowerCase()}`}
+                placeholderTextColor="#999"
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.suggestionsContainer}>
+                {suggestions.map(item => (
+                    <TouchableOpacity key={item} style={styles.suggestionChip} onPress={() => onSuggestionPress(item)}>
+                        <Text style={styles.suggestionText}>{item}</Text>
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+        </View>
+    );
+};
+
+export default function SorterDashboard() {
+    const [view, setView] = useState("dashboard");
+    const [scannedPacks, setScannedPacks] = useState([]);
+    const [availableBatches, setAvailableBatches] = useState([]);
+    const [selectedBatchId, setSelectedBatchId] = useState(null);
+    const [packDetails, setPackDetails] = useState({});
+    const [dropdowns, setDropdowns] = useState({ brands: [], materials: [], colors: [] });
+    const [isLoading, setIsLoading] = useState(false);
+    const [linkedPacksSummary, setLinkedPacksSummary] = useState(null);
+    const [isProcessingScan, setIsProcessingScan] = useState(false);
+
+    // Animation values
+    const fadeAnim = useState(new Animated.Value(0))[0];
+    const slideAnim = useState(new Animated.Value(50))[0];
+    const scaleAnim = useState(new Animated.Value(0.9))[0];
+
+    // Handle back button press
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (view === 'dashboard') {
+                return false;
+            } else {
+                handleBackPress();
+                return true;
+            }
+        });
+
+        return () => backHandler.remove();
+    }, [view]);
+
+    const handleBackPress = () => {
+        if (view === 'scanPacks') {
+            setView('dashboard');
+            return true;
+        } else if (view === 'selectBatch') {
+            setView('scanPacks');
+            return true;
+        } else if (view === 'packDetails') {
+            setView('selectBatch');
+            return true;
+        } else if (view === 'success') {
+            resetSortingState();
+            setView('dashboard');
+            return true;
+        }
+        return false;
+    };
+
+    // Animation function
+    const animateIn = () => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 500,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+            Animated.timing(scaleAnim, {
+                toValue: 1,
+                duration: 500,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            })
+        ]).start();
+    };
+
+    const handleBarcodeScanned = async ({ data }) => {
+        if (isProcessingScan) return;
+        if (scannedPacks.includes(data)) return;
+
+        setIsProcessingScan(true);
+
+        try {
+            const snap = await firestore().collection('sortedPackIndex').doc(data).get();
+            if (snap.exists()) {
+                const { sortedAt, sortedBy } = snap.data();
+                Alert.alert(
+                    'Pack Already Sorted',
+                    `This pack was already sorted on ${sortedAt.toDate().toLocaleDateString()} by ${sortedBy}`
+                );
+                setIsProcessingScan(false);
+                return;
+            }
+
+            setScannedPacks(prev => [...prev, data]);
+        } catch (e) {
+            console.error('Lookup failed:', e);
+            Alert.alert('Network error', 'Could not verify pack');
+        } finally {
+            setIsProcessingScan(false);
+        }
+    };
+
+    // Reset animation when view changes
+    useEffect(() => {
+        fadeAnim.setValue(0);
+        slideAnim.setValue(50);
+        scaleAnim.setValue(0.9);
+        animateIn();
+    }, [view]);
+
+    // Data fetching
+    useEffect(() => {
+        const fetchDropdownData = async () => {
+            try {
+                const docSnap = await firestore().collection('appConfig').doc('dropdowns').get();
+                if (docSnap.exists) {
+                    setDropdowns(docSnap.data());
+                }
+            } catch (error) {
+                console.error("Error fetching dropdowns:", error);
+            }
+        };
+        fetchDropdownData();
+    }, []);
+
+    const fetchBatches = async () => {
+        setIsLoading(true);
+        try {
+            const querySnapshot = await firestore().collection('batches').get();
+            const batches = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setAvailableBatches(batches);
+            setView('selectBatch');
+        } catch (error) {
+            console.error("Error fetching batches:", error);
+            Alert.alert("Error", "Could not fetch available batches.");
+        }
+        setIsLoading(false);
+    };
+
+    // Workflow functions
+    const handleLinkPacksPress = () => {
+        resetSortingState();
+        setView('scanPacks');
+    };
+
+    const handlePacksScanned = () => {
+        if (scannedPacks.length === 0) {
+            Alert.alert("No Packs Scanned", "Please scan at least one sorted pack.");
+            return;
+        }
+        let initialDetails = {};
+        scannedPacks.forEach(packId => {
+            initialDetails[packId] = { weight: "", brand: "", material: "", color: "" };
+        });
+        setPackDetails(initialDetails);
+        fetchBatches();
+    };
+
+    const handleBatchSelected = (batchId) => {
+        setSelectedBatchId(batchId);
+        setView('packDetails');
+    };
+
+    const handleDetailChange = (packId, field, value) => {
+        setPackDetails(prev => ({ ...prev, [packId]: { ...prev[packId], [field]: value } }));
+    };
+
+    const saveNewSuggestions = async () => {
+        const newSuggestions = { brands: new Set(), materials: new Set(), colors: new Set() };
+        for (const packId of scannedPacks) {
+            const details = packDetails[packId];
+            if (details.brand && !dropdowns.brands.includes(details.brand)) newSuggestions.brands.add(details.brand);
+            if (details.material && !dropdowns.materials.includes(details.material)) newSuggestions.materials.add(details.material);
+            if (details.color && !dropdowns.colors.includes(details.color)) newSuggestions.colors.add(details.color);
+        }
+
+        if (newSuggestions.brands.size === 0 && newSuggestions.materials.size === 0 && newSuggestions.colors.size === 0) return;
+
+        try {
+            const dropdownsRef = firestore().collection('appConfig').doc('dropdowns');
+            await dropdownsRef.update({
+                brands: firestore.FieldValue.arrayUnion(...Array.from(newSuggestions.brands)),
+                materials: firestore.FieldValue.arrayUnion(...Array.from(newSuggestions.materials)),
+                colors: firestore.FieldValue.arrayUnion(...Array.from(newSuggestions.colors)),
+            });
+        } catch (error) {
+            console.error("Error saving new suggestions:", error);
+        }
+    };
+
+    const handleSubmitPackDetails = async () => {
+        for (const packId of scannedPacks) {
+            const details = packDetails[packId];
+            if (!details.weight || !details.brand || !details.material || !details.color) {
+                Alert.alert("Missing Information", `Please fill in all details for Pack ${packId}.`);
+                return;
+            }
+        }
+        setIsLoading(true);
+        try {
+            const batch = firestore().batch();
+            const now = firestore.FieldValue.serverTimestamp();
+            const summaryData = [];
+
+            for (const packId of scannedPacks) {
+                const details = packDetails[packId];
+
+                const packRef = firestore().collection('sortedPacks').doc(packId);
+                batch.set(packRef, {
+                    originalBatchId: selectedBatchId,
+                    weight: parseFloat(details.weight),
+                    brand: details.brand,
+                    material: details.material,
+                    color: details.color,
+                    sortedAt: now,
+                    sortedBy: auth().currentUser.email,
+                });
+
+                const indexRef = firestore().collection('sortedPackIndex').doc(packId);
+                batch.set(indexRef, {
+                    sortedAt: now,
+                    sortedBy: auth().currentUser.email,
+                });
+
+                summaryData.push({
+                    packId,
+                    ...details,
+                    fromBatch: selectedBatchId,
+                    date: new Date().toLocaleDateString(),
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                });
+            }
+
+            await batch.commit();
+            await saveNewSuggestions();
+            setLinkedPacksSummary(summaryData);
+            setView('success');
+        } catch (e) {
+            console.error(e);
+            Alert.alert('Error', 'Could not save pack details');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const resetSortingState = () => {
+        setScannedPacks([]);
+        setSelectedBatchId(null);
+        setPackDetails({});
+        setLinkedPacksSummary(null);
+    };
+
+    const goToHomePage = () => {
+        resetSortingState();
+        setView('dashboard');
+    };
+
+    // Render Views
+    if (view === 'dashboard') {
+        return (
+            <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+                <Animated.View style={[styles.animatedContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }]}>
+                    <View style={styles.header}>
+                        <Image source={require('../../assets/logo2.png')} style={styles.logo} />
+                        <Text style={styles.title}>Sorter Dashboard</Text>
+                    </View>
+
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.primaryButton} onPress={handleLinkPacksPress}>
+                            <Text style={styles.primaryButtonText}>Link Sorted Packs</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.secondaryButton} onPress={() => auth().signOut()}>
+                            <Text style={styles.secondaryButtonText}>Logout</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </LinearGradient>
+        );
+    }
+
+    if (view === 'success') {
+        return (
+            <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+                <Animated.View style={[styles.animatedContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }]}>
+                    <View style={styles.header}>
+                        <Text style={styles.title}>✅ Packs Linked!</Text>
+                    </View>
+
+                    <View style={styles.content}>
+                        <ScrollView style={styles.summaryScroll} showsVerticalScrollIndicator={false}>
+                            {linkedPacksSummary?.map(pack => (
+                                <View key={pack.packId} style={styles.summaryCard}>
+                                    <Text style={styles.summaryPackId}>{pack.packId}</Text>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={styles.summaryLabel}>Date:</Text>
+                                        <Text style={styles.summaryValue}>{`${pack.date} at ${pack.time}`}</Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={styles.summaryLabel}>Brand:</Text>
+                                        <Text style={styles.summaryValue}>{pack.brand}</Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={styles.summaryLabel}>Weight:</Text>
+                                        <Text style={styles.summaryValue}>{`${pack.weight} kg`}</Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={styles.summaryLabel}>Material:</Text>
+                                        <Text style={styles.summaryValue}>{pack.material}</Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={styles.summaryLabel}>Colour:</Text>
+                                        <Text style={styles.summaryValue}>{pack.color}</Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    <View style={styles.footer}>
+                        <TouchableOpacity style={styles.footerButton} onPress={goToHomePage}>
+                            <Text style={styles.footerButtonText}>Back to Home</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </LinearGradient>
+        );
+    }
+
+    if (view === 'scanPacks') {
+        return (
+            <View style={styles.container}>
+                <CameraView
+                    onBarcodeScanned={handleBarcodeScanned}
+                    style={StyleSheet.absoluteFillObject}
+                >
+                    <View style={styles.scannerOverlay}>
+                        <View style={styles.scannerHeader}>
+                            <Text style={styles.scannerTitle}>Scan Pack QR Codes</Text>
+                            <Text style={styles.scannerSubtitle}>Position QR code within the frame</Text>
+                        </View>
+
+                        <View style={styles.scannerFrame}>
+                            <View style={styles.scannerBox} />
+                        </View>
+
+                        <View style={styles.scannerStatus}>
+                            <Text style={styles.scannerProgress}>Scanned: {scannedPacks.length} packs</Text>
+                            {scannedPacks.length > 0 && (
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scannedItemsScroll}>
+                                    {scannedPacks.map(p => (
+                                        <View key={p} style={styles.scannedItem}>
+                                            <Text style={styles.scannedItemText}>{p.substring(0, 8)}...</Text>
+                                        </View>
+                                    ))}
+                                </ScrollView>
+                            )}
+                        </View>
+
+                        <View style={styles.scannerFooter}>
+                            <TouchableOpacity style={styles.scannerActionButton} onPress={goToHomePage}>
+                                <Text style={styles.scannerActionText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.scannerActionButton, styles.primaryAction]} onPress={handlePacksScanned}>
+                                <Text style={styles.primaryActionText}>Next</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </CameraView>
+            </View>
+        );
+    }
+
+    if (view === 'selectBatch') {
+        return (
+            <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+                <Animated.View style={[styles.animatedContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }]}>
+                    <View style={styles.header}>
+                        <Text style={styles.title}>Select Source Batch</Text>
+                        <Text style={styles.subtitle}>Choose the batch these packs came from</Text>
+                    </View>
+
+                    <View style={styles.content}>
+                        <ScrollView style={styles.batchScroll} showsVerticalScrollIndicator={false}>
+                            {availableBatches.map(batch => (
+                                <TouchableOpacity key={batch.id} style={styles.batchItem} onPress={() => handleBatchSelected(batch.id)}>
+                                    <Text style={styles.batchId}>{batch.id.substring(0, 20)}...</Text>
+                                    <Text style={styles.batchDate}>
+                                        Created: {batch.createdAt?.toDate?.()?.toLocaleDateString() || 'Unknown date'}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    <View style={styles.footer}>
+                        <TouchableOpacity style={styles.footerButton} onPress={handleBackPress}>
+                            <Text style={styles.footerButtonText}>Back</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </LinearGradient>
+        );
+    }
+
+    if (view === 'packDetails') {
+        return (
+            <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+                <Animated.View style={[styles.animatedContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: scaleAnim }] }]}>
+                    <View style={styles.header}>
+                        <Text style={styles.title}>Pack Details</Text>
+                        <Text style={styles.subtitle}>Enter information for each scanned pack</Text>
+                    </View>
+
+                    <View style={styles.content}>
+                        <ScrollView style={styles.detailsScroll} showsVerticalScrollIndicator={false}>
+                            {scannedPacks.map(packId => (
+                                <View key={packId} style={styles.packDetailCard}>
+                                    <Text style={styles.packIdText}>Pack: {packId.substring(0, 12)}...</Text>
+
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.detailLabel}>Weight (kg)</Text>
+                                        <TextInput
+                                            style={styles.detailInput}
+                                            value={packDetails[packId]?.weight}
+                                            onChangeText={(text) => handleDetailChange(packId, 'weight', text)}
+                                            keyboardType="numeric"
+                                            placeholder="0.0"
+                                            placeholderTextColor="#999"
+                                        />
+                                    </View>
+
+                                    <SuggestionInput
+                                        label="Brand"
+                                        value={packDetails[packId]?.brand}
+                                        suggestions={dropdowns.brands}
+                                        onValueChange={(text) => handleDetailChange(packId, 'brand', text)}
+                                        onSuggestionPress={(item) => handleDetailChange(packId, 'brand', item)}
+                                    />
+
+                                    <SuggestionInput
+                                        label="Material"
+                                        value={packDetails[packId]?.material}
+                                        suggestions={dropdowns.materials}
+                                        onValueChange={(text) => handleDetailChange(packId, 'material', text)}
+                                        onSuggestionPress={(item) => handleDetailChange(packId, 'material', item)}
+                                    />
+
+                                    <SuggestionInput
+                                        label="Color"
+                                        value={packDetails[packId]?.color}
+                                        suggestions={dropdowns.colors}
+                                        onValueChange={(text) => handleDetailChange(packId, 'color', text)}
+                                        onSuggestionPress={(item) => handleDetailChange(packId, 'color', item)}
+                                    />
+                                </View>
+                            ))}
+                        </ScrollView>
+                    </View>
+
+                    <View style={styles.footer}>
+                        <TouchableOpacity style={styles.footerButton} onPress={handleBackPress}>
+                            <Text style={styles.footerButtonText}>Back</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.footerButton, styles.primaryFooterButton]}
+                            onPress={handleSubmitPackDetails}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                            ) : (
+                                <Text style={styles.primaryFooterButtonText}>Submit Details</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </LinearGradient>
+        );
+    }
+
+    return (
+        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>
+            <ActivityIndicator size="large" color="#fff" />
+        </LinearGradient>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        width: '100%',
+    },
+    animatedContainer: {
+        flex: 1,
+        width: '100%',
+        paddingHorizontal: 20,
+    },
+    header: {
+        alignItems: 'center',
+        paddingTop: height * 0.05,
+        paddingBottom: 20,
+    },
+    content: {
+        flex: 1,
+        width: '100%',
+    },
+    footer: {
+        width: '100%',
+        paddingVertical: 20,
+        paddingHorizontal: 10,
+    },
+    logo: {
+        width: 80,
+        height: 80,
+        resizeMode: 'contain',
+        marginBottom: 15,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: '700',
+        color: '#fff',
+        textAlign: 'center',
+        marginBottom: 8,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 3,
+    },
+    subtitle: {
+        fontSize: 16,
+        color: 'rgba(255, 255, 255, 0.8)',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+    buttonContainer: {
+        width: '100%',
+        paddingHorizontal: 10,
+        marginTop: 30,
+    },
+    primaryButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        paddingVertical: 16,
+        borderRadius: 12,
+        marginBottom: 15,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    primaryButtonText: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#343a40',
+        textAlign: 'center',
+    },
+    secondaryButton: {
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.8)',
+        paddingVertical: 16,
+        borderRadius: 12,
+    },
+    secondaryButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#fff',
+        textAlign: 'center',
+    },
+    footerButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        paddingVertical: 15,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginVertical: 5,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    primaryFooterButton: {
+        backgroundColor: '#4CAF50',
+        marginTop: 10,
+    },
+    footerButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+    },
+    primaryFooterButtonText: {
+        color: '#fff',
+        fontWeight: '600',
+    },
+    // Scanner Styles
+    scannerOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        paddingHorizontal: 20,
+        paddingTop: height * 0.05,
+        paddingBottom: 30,
+    },
+    scannerHeader: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    scannerTitle: {
+        fontSize: 22,
+        color: 'white',
+        fontWeight: '700',
+        textAlign: 'center',
+        marginBottom: 5,
+    },
+    scannerSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.8)',
+        textAlign: 'center',
+    },
+    scannerFrame: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    scannerBox: {
+        width: width * 0.7,
+        height: width * 0.7,
+        borderWidth: 3,
+        borderColor: 'white',
+        borderRadius: 15,
+        backgroundColor: 'transparent',
+    },
+    scannerStatus: {
+        height: 80,
+        marginVertical: 20,
+    },
+    scannerProgress: {
+        fontSize: 16,
+        color: 'white',
+        textAlign: 'center',
+        marginBottom: 10,
+        fontWeight: '600',
+    },
+    scannedItemsScroll: {
+        flex: 1,
+    },
+    scannedItem: {
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        marginHorizontal: 4,
+        borderRadius: 15,
+        justifyContent: 'center',
+    },
+    scannedItemText: {
+        color: '#2f3542',
+        fontWeight: '500',
+        fontSize: 12,
+    },
+    scannerFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    scannerActionButton: {
+        paddingVertical: 15,
+        paddingHorizontal: 25,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.8)',
+        minWidth: width * 0.35,
+        alignItems: 'center',
+    },
+    primaryAction: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderColor: 'rgba(255, 255, 255, 0.9)',
+    },
+    scannerActionText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    primaryActionText: {
+        color: '#333',
+        fontWeight: '600',
+    },
+    // Batch Selection Styles
+    batchScroll: {
+        flex: 1,
+        width: '100%',
+    },
+    batchItem: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 20,
+        borderRadius: 12,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    batchId: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 5,
+    },
+    batchDate: {
+        fontSize: 14,
+        color: '#666',
+    },
+    // Pack Details Styles
+    detailsScroll: {
+        flex: 1,
+        width: '100%',
+    },
+    packDetailCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 20,
+        borderRadius: 12,
+        marginBottom: 15,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    packIdText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#273c75',
+        marginBottom: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ecf0f1',
+        paddingBottom: 10,
+    },
+    detailRow: {
+        marginBottom: 15,
+    },
+    detailLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 8,
+    },
+    detailInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        backgroundColor: '#fff',
+        padding: 12,
+        borderRadius: 8,
+        fontSize: 16,
+        color: '#333',
+    },
+    // Input Group Styles
+    inputGroup: {
+        marginBottom: 15,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 8,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        backgroundColor: '#fff',
+        padding: 12,
+        borderRadius: 8,
+        fontSize: 16,
+        color: '#333',
+        marginBottom: 8,
+    },
+    suggestionsContainer: {
+        flexDirection: 'row',
+    },
+    suggestionChip: {
+        backgroundColor: '#e9ecef',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 15,
+        marginRight: 8,
+        marginBottom: 4,
+    },
+    suggestionText: {
+        color: '#495057',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    // Summary Styles
+    summaryScroll: {
+        flex: 1,
+        width: '100%',
+    },
+    summaryCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    summaryPackId: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#007bff',
+        marginBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ecf0f1',
+        paddingBottom: 8,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 6,
+    },
+    summaryLabel: {
+        fontSize: 14,
+        color: '#666',
+        fontWeight: '500',
+    },
+    summaryValue: {
+        fontSize: 14,
+        color: '#333',
+        fontWeight: '600',
+    },
+});

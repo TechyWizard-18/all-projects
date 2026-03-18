@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "644001902207",
+    "project_id": "minjo-94440",
+    "storage_bucket": "minjo-94440.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:644001902207:android:91dd511361fc3404bc194a",
+        "android_client_info": {
+          "package_name": "com.mijen.circulyte"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgRCAic_jLfPX5MNYl8ckpskfRnYMCEDY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

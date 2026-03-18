@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Circulyte",
+    "slug": "banana-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logoX.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/logoX.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mijen.circulyte",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logoX.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.mijen.circulyte",
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-firebase/app"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "621c0c36-412e-4066-aab1-afc659aa2d89"
+      }
+    }
+  }
+}
