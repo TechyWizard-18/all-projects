@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fees - Tuition Management System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1><i class="fas fa-graduation-cap"></i> TuitionHub</h1>
+      </div>
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="students.html"><i class="fas fa-users"></i> Students</a></li>
+          <li><a href="batches.html"><i class="fas fa-layer-group"></i> Batches</a></li>
+          <li><a href="fees.html" class="active"><i class="fas fa-rupee-sign"></i> Fees</a></li>
+          <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <div class="page-header">
+        <h2>Fee Management</h2>
+        <div class="header-actions">
+          <button class="btn btn-secondary" onclick="exportFees()">
+            <i class="fas fa-download"></i> Export
+          </button>
+          <button class="btn btn-primary" onclick="openAddFeeModal()">
+            <i class="fas fa-plus"></i> Add Fee Record
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="feeStats">
+        <div class="stat-card">
+          <div class="stat-icon fees">
+            <i class="fas fa-rupee-sign"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalAmount">-</h3>
+            <p>Total Fees</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="collectedAmount">-</h3>
+            <p>Collected</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pending">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="pendingAmount">-</h3>
+            <p>Pending</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon overdue">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="overdueCount">-</h3>
+            <p>Overdue</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="card">
+        <div class="card-body">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="all">All Fees</button>
+            <button class="tab-btn" data-tab="pending">Pending</button>
+            <button class="tab-btn" data-tab="overdue">Overdue</button>
+            <button class="tab-btn" data-tab="paid">Paid</button>
+          </div>
+
+          <!-- Filters -->
+          <div class="search-box mb-3">
+            <div class="filter-group" style="width: 100%; justify-content: flex-start;">
+              <select class="form-control" id="filterStudent" style="width: 200px;">
+                <option value="">All Students</option>
+              </select>
+              <select class="form-control" id="filterMonth" style="width: 150px;">
+                <option value="">All Months</option>
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April">April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
+              </select>
+              <select class="form-control" id="filterYear" style="width: 120px;">
+                <option value="">All Years</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Fees Table -->
+          <div class="table-container" id="feesTableContainer">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Fee Modal -->
+  <div class="modal-overlay" id="feeModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="feeModalTitle">Add Fee Record</h3>
+        <button class="modal-close" onclick="closeModal('feeModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="feeForm">
+          <input type="hidden" id="feeId">
+
+          <div class="form-group">
+            <label class="form-label">Student *</label>
+            <select class="form-control" id="feeStudentId" name="student_id" required>
+              <option value="">Select Student</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Amount (₹) *</label>
+              <input type="number" class="form-control" id="feeAmount" name="amount" required min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Due Date *</label>
+              <input type="date" class="form-control" id="feeDueDate" name="due_date" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Month</label>
+              <select class="form-control" id="feeMonth" name="month">
+                <option value="">Select Month</option>
+                <option value="January">January</option>
+                <option value="February">February</option>
+                <option value="March">March</option>
+                <option value="April">April</option>
+                <option value="May">May</option>
+                <option value="June">June</option>
+                <option value="July">July</option>
+                <option value="August">August</option>
+                <option value="September">September</option>
+                <option value="October">October</option>
+                <option value="November">November</option>
+                <option value="December">December</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Year</label>
+              <input type="number" class="form-control" id="feeYear" name="year" placeholder="e.g., 2024">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="feeNotes" name="notes" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('feeModal')">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveFee()">
+          <i class="fas fa-save"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Record Payment Modal -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Record Payment</h3>
+        <button class="modal-close" onclick="closeModal('paymentModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info mb-3" id="paymentInfo"></div>
+        <form id="paymentForm">
+          <input type="hidden" id="paymentFeeId">
+
+          <div class="form-group">
+            <label class="form-label">Payment Amount (₹) *</label>
+            <input type="number" class="form-control" id="paymentAmount" required min="0">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Payment Method</label>
+            <select class="form-control" id="paymentMethod">
+              <option value="cash">Cash</option>
+              <option value="upi">UPI</option>
+              <option value="bank_transfer">Bank Transfer</option>
+              <option value="card">Card</option>
+              <option value="cheque">Cheque</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="paymentNotes" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('paymentModal')">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="recordPayment()">
+          <i class="fas fa-check"></i> Record Payment
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    let allFees = [];
+    let allStudents = [];
+    let currentTab = 'all';
+
+    async function loadData() {
+      try {
+        // Load students for dropdown
+        const studentsResponse = await api.students.getAll({ status: 'active' });
+        allStudents = studentsResponse.data;
+        populateStudentDropdowns();
+        populateYearFilter();
+
+        // Load fee stats
+        await loadFeeStats();
+
+        // Load fees
+        await loadFees();
+      } catch (error) {
+        toast.error('Failed to load data');
+        console.error(error);
+      }
+    }
+
+    function populateStudentDropdowns() {
+      const filterSelect = document.getElementById('filterStudent');
+      const formSelect = document.getElementById('feeStudentId');
+
+      const options = allStudents.map(s => `<option value="${s.id}">${s.name} (${s.class})</option>`).join('');
+
+      filterSelect.innerHTML = '<option value="">All Students</option>' + options;
+      formSelect.innerHTML = '<option value="">Select Student</option>' + options;
+    }
+
+    function populateYearFilter() {
+      const currentYear = new Date().getFullYear();
+      const yearSelect = document.getElementById('filterYear');
+      let options = '<option value="">All Years</option>';
+      for (let y = currentYear; y >= currentYear - 3; y--) {
+        options += `<option value="${y}">${y}</option>`;
+      }
+      yearSelect.innerHTML = options;
+    }
+
+    async function loadFeeStats() {
+      try {
+        const response = await api.fees.getStats();
+        const stats = response.data;
+
+        document.getElementById('totalAmount').textContent = formatCurrency(stats.totalAmount);
+        document.getElementById('collectedAmount').textContent = formatCurrency(stats.collectedAmount);
+        document.getElementById('pendingAmount').textContent = formatCurrency(stats.pendingAmount);
+        document.getElementById('overdueCount').textContent = stats.counts.overdue;
+      } catch (error) {
+        console.error('Failed to load fee stats:', error);
+      }
+    }
+
+    async function loadFees() {
+      try {
+        const params = {};
+        const studentId = document.getElementById('filterStudent').value;
+        const month = document.getElementById('filterMonth').value;
+        const year = document.getElementById('filterYear').value;
+
+        if (studentId) params.student_id = studentId;
+        if (month) params.month = month;
+        if (year) params.year = year;
+
+        if (currentTab === 'pending') params.status = 'pending';
+        else if (currentTab === 'paid') params.status = 'paid';
+
+        let response;
+        if (currentTab === 'overdue') {
+          response = await api.fees.getOverdue();
+        } else {
+          response = await api.fees.getAll(params);
+        }
+
+        allFees = response.data;
+        renderFeesTable();
+      } catch (error) {
+        toast.error('Failed to load fees');
+        console.error(error);
+      }
+    }
+
+    function renderFeesTable() {
+      const container = document.getElementById('feesTableContainer');
+
+      if (allFees.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <h3>No Fee Records Found</h3>
+            <p>Add fee records to track payments</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Amount</th>
+              <th>Paid</th>
+              <th>Due Date</th>
+              <th>Month/Year</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allFees.map(fee => {
+              const remaining = fee.amount - (fee.paid_amount || 0);
+              const days = daysUntilDue(fee.due_date);
+              const isOverdue = days < 0 && fee.status !== 'paid';
+
+              return `
+                <tr>
+                  <td>
+                    <div>
+                      <strong>${fee.student_name}</strong>
+                      <br><small class="text-muted">${fee.student_class || ''}</small>
+                    </div>
+                  </td>
+                  <td>${formatCurrency(fee.amount)}</td>
+                  <td>${formatCurrency(fee.paid_amount || 0)}</td>
+                  <td>
+                    ${formatDate(fee.due_date)}
+                    ${isOverdue ? '<br><small class="text-danger">' + Math.abs(days) + ' days overdue</small>' : ''}
+                  </td>
+                  <td>${fee.month || '-'} ${fee.year || ''}</td>
+                  <td><span class="badge ${getStatusBadge(isOverdue && fee.status !== 'paid' ? 'overdue' : fee.status)}">${isOverdue && fee.status !== 'paid' ? 'Overdue' : fee.status}</span></td>
+                  <td>
+                    <div class="action-buttons">
+                      ${fee.status !== 'paid' ? `
+                        <button class="btn btn-sm btn-success" onclick="openPaymentModal('${fee.id}')" title="Record Payment">
+                          <i class="fas fa-rupee-sign"></i>
+                        </button>
+                      ` : ''}
+                      <button class="btn btn-sm btn-icon btn-primary" onclick="editFee('${fee.id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-sm btn-icon btn-danger" onclick="deleteFee('${fee.id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function openAddFeeModal() {
+      document.getElementById('feeModalTitle').textContent = 'Add Fee Record';
+      document.getElementById('feeId').value = '';
+      resetForm('feeForm');
+
+      // Set default values
+      const today = new Date();
+      const dueDate = new Date(today.getFullYear(), today.getMonth() + 1, 10);
+      document.getElementById('feeDueDate').value = dueDate.toISOString().split('T')[0];
+      document.getElementById('feeMonth').value = monthNames[today.getMonth()];
+      document.getElementById('feeYear').value = today.getFullYear();
+
+      openModal('feeModal');
+    }
+
+    async function editFee(id) {
+      try {
+        const response = await api.fees.getById(id);
+        const fee = response.data;
+
+        document.getElementById('feeModalTitle').textContent = 'Edit Fee Record';
+        document.getElementById('feeId').value = fee.id;
+        document.getElementById('feeStudentId').value = fee.student_id;
+        document.getElementById('feeAmount').value = fee.amount;
+        document.getElementById('feeDueDate').value = fee.due_date;
+        document.getElementById('feeMonth').value = fee.month || '';
+        document.getElementById('feeYear').value = fee.year || '';
+        document.getElementById('feeNotes').value = fee.notes || '';
+
+        openModal('feeModal');
+      } catch (error) {
+        toast.error('Failed to load fee details');
+      }
+    }
+
+    async function saveFee() {
+      if (!validateForm('feeForm')) return;
+
+      const id = document.getElementById('feeId').value;
+      const data = getFormData('feeForm');
+
+      try {
+        if (id) {
+          await api.fees.update(id, data);
+          toast.success('Fee record updated successfully');
+        } else {
+          await api.fees.create(data);
+          toast.success('Fee record added successfully');
+        }
+
+        closeModal('feeModal');
+        loadFeeStats();
+        loadFees();
+      } catch (error) {
+        toast.error(error.message || 'Failed to save fee record');
+      }
+    }
+
+    async function openPaymentModal(id) {
+      try {
+        const response = await api.fees.getById(id);
+        const fee = response.data;
+        const remaining = fee.amount - (fee.paid_amount || 0);
+
+        document.getElementById('paymentFeeId').value = fee.id;
+        document.getElementById('paymentAmount').value = remaining;
+        document.getElementById('paymentAmount').max = remaining;
+        document.getElementById('paymentInfo').innerHTML = `
+          <strong>${fee.student_name}</strong><br>
+          Total: ${formatCurrency(fee.amount)} | Paid: ${formatCurrency(fee.paid_amount || 0)} |
+          <strong>Remaining: ${formatCurrency(remaining)}</strong>
+        `;
+
+        openModal('paymentModal');
+      } catch (error) {
+        toast.error('Failed to load fee details');
+      }
+    }
+
+    async function recordPayment() {
+      const feeId = document.getElementById('paymentFeeId').value;
+      const paidAmount = parseFloat(document.getElementById('paymentAmount').value);
+      const paymentMethod = document.getElementById('paymentMethod').value;
+      const notes = document.getElementById('paymentNotes').value;
+
+      if (!paidAmount || paidAmount <= 0) {
+        toast.error('Please enter a valid amount');
+        return;
+      }
+
+      try {
+        await api.fees.recordPayment(feeId, {
+          paid_amount: paidAmount,
+          payment_method: paymentMethod,
+          notes: notes
+        });
+
+        toast.success('Payment recorded successfully');
+        closeModal('paymentModal');
+        loadFeeStats();
+        loadFees();
+      } catch (error) {
+        toast.error(error.message || 'Failed to record payment');
+      }
+    }
+
+    async function deleteFee(id) {
+      if (!await confirmAction('Are you sure you want to delete this fee record?')) {
+        return;
+      }
+
+      try {
+        await api.fees.delete(id);
+        toast.success('Fee record deleted successfully');
+        loadFeeStats();
+        loadFees();
+      } catch (error) {
+        toast.error(error.message || 'Failed to delete fee record');
+      }
+    }
+
+    async function exportFees() {
+      try {
+        const data = await api.exportData('fees');
+        exportToCSV(data, 'fees_export.csv');
+        toast.success('Fees exported successfully');
+      } catch (error) {
+        toast.error('Failed to export fees');
+      }
+    }
+
+    // Tab handling
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTab = btn.dataset.tab;
+        loadFees();
+      });
+    });
+
+    // Filter event listeners
+    document.getElementById('filterStudent').addEventListener('change', loadFees);
+    document.getElementById('filterMonth').addEventListener('change', loadFees);
+    document.getElementById('filterYear').addEventListener('change', loadFees);
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>

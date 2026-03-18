@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batches - Tuition Management System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1><i class="fas fa-graduation-cap"></i> TuitionHub</h1>
+      </div>
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="students.html"><i class="fas fa-users"></i> Students</a></li>
+          <li><a href="batches.html" class="active"><i class="fas fa-layer-group"></i> Batches</a></li>
+          <li><a href="fees.html"><i class="fas fa-rupee-sign"></i> Fees</a></li>
+          <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <div class="page-header">
+        <h2>Batch Management</h2>
+        <div class="header-actions">
+          <button class="btn btn-primary" onclick="openAddBatchModal()">
+            <i class="fas fa-plus"></i> Add Batch
+          </button>
+        </div>
+      </div>
+
+      <!-- Batches Grid -->
+      <div id="batchesContainer" class="stats-grid" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Batch Modal -->
+  <div class="modal-overlay" id="batchModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="batchModalTitle">Add New Batch</h3>
+        <button class="modal-close" onclick="closeModal('batchModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="batchForm">
+          <input type="hidden" id="batchId">
+
+          <div class="form-group">
+            <label class="form-label">Batch Name *</label>
+            <input type="text" class="form-control" id="batchName" name="name" placeholder="e.g., Morning Batch A" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Timing *</label>
+            <input type="text" class="form-control" id="batchTiming" name="timing" placeholder="e.g., 9:00 AM - 11:00 AM" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Subjects *</label>
+            <input type="text" class="form-control" id="batchSubjects" name="subjects" placeholder="e.g., Maths, Physics" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Maximum Students</label>
+            <input type="number" class="form-control" id="maxStudents" name="max_students" value="30" min="1">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('batchModal')">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveBatch()">
+          <i class="fas fa-save"></i> Save Batch
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Batch Modal -->
+  <div class="modal-overlay" id="viewBatchModal">
+    <div class="modal" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3 id="viewBatchTitle">Batch Details</h3>
+        <button class="modal-close" onclick="closeModal('viewBatchModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="batchDetails">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('viewBatchModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    let allBatches = [];
+
+    async function loadBatches() {
+      try {
+        const response = await api.batches.getAll();
+        allBatches = response.data;
+        renderBatches();
+      } catch (error) {
+        toast.error('Failed to load batches');
+        console.error(error);
+      }
+    }
+
+    function renderBatches() {
+      const container = document.getElementById('batchesContainer');
+
+      if (allBatches.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="grid-column: 1 / -1;">
+            <div class="card-body">
+              <div class="empty-state">
+                <i class="fas fa-layer-group"></i>
+                <h3>No Batches Found</h3>
+                <p>Create your first batch to organize students</p>
+                <button class="btn btn-primary" onclick="openAddBatchModal()">
+                  <i class="fas fa-plus"></i> Add Batch
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = allBatches.map(batch => {
+        const occupancyPercent = batch.max_students ? Math.round((batch.student_count / batch.max_students) * 100) : 0;
+        const occupancyColor = occupancyPercent >= 90 ? 'var(--danger-color)' :
+                               occupancyPercent >= 70 ? 'var(--warning-color)' : 'var(--success-color)';
+
+        return `
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+              <h3><i class="fas fa-layer-group" style="color: var(--primary-color);"></i> ${batch.name}</h3>
+              <div class="action-buttons">
+                <button class="btn btn-sm btn-icon btn-secondary" onclick="viewBatch('${batch.id}')" title="View">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-icon btn-primary" onclick="editBatch('${batch.id}')" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-icon btn-danger" onclick="deleteBatch('${batch.id}')" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="d-flex align-center gap-1 mb-2">
+                <i class="fas fa-clock text-muted"></i>
+                <span>${batch.timing}</span>
+              </div>
+              <div class="d-flex align-center gap-1 mb-2">
+                <i class="fas fa-book text-muted"></i>
+                <span>${batch.subjects}</span>
+              </div>
+              <div class="d-flex align-center gap-1 mb-2">
+                <i class="fas fa-users text-muted"></i>
+                <span>${batch.student_count} / ${batch.max_students} Students</span>
+              </div>
+              <div style="margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                  <span class="text-muted" style="font-size: 0.85rem;">Occupancy</span>
+                  <span style="font-size: 0.85rem; font-weight: 600;">${occupancyPercent}%</span>
+                </div>
+                <div style="height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden;">
+                  <div style="height: 100%; width: ${occupancyPercent}%; background: ${occupancyColor}; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openAddBatchModal() {
+      document.getElementById('batchModalTitle').textContent = 'Add New Batch';
+      document.getElementById('batchId').value = '';
+      resetForm('batchForm');
+      document.getElementById('maxStudents').value = 30;
+      openModal('batchModal');
+    }
+
+    async function editBatch(id) {
+      try {
+        const response = await api.batches.getById(id);
+        const batch = response.data;
+
+        document.getElementById('batchModalTitle').textContent = 'Edit Batch';
+        document.getElementById('batchId').value = batch.id;
+        document.getElementById('batchName').value = batch.name;
+        document.getElementById('batchTiming').value = batch.timing;
+        document.getElementById('batchSubjects').value = batch.subjects;
+        document.getElementById('maxStudents').value = batch.max_students;
+
+        openModal('batchModal');
+      } catch (error) {
+        toast.error('Failed to load batch details');
+      }
+    }
+
+    async function viewBatch(id) {
+      try {
+        const response = await api.batches.getById(id);
+        const batch = response.data;
+
+        document.getElementById('viewBatchTitle').textContent = batch.name;
+
+        let studentsHtml = '';
+        if (batch.students && batch.students.length > 0) {
+          studentsHtml = `
+            <h4 style="margin-top: 20px; margin-bottom: 10px;">Students in this Batch</h4>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Class</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${batch.students.map(s => `
+                    <tr>
+                      <td>${s.name}</td>
+                      <td>${s.class}</td>
+                      <td>${s.phone}</td>
+                      <td><span class="badge ${getStatusBadge(s.status)}">${s.status}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          studentsHtml = '<p class="text-muted" style="margin-top: 20px;">No students in this batch yet.</p>';
+        }
+
+        document.getElementById('batchDetails').innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <p class="text-muted mb-0">Timing</p>
+              <p><strong>${batch.timing}</strong></p>
+            </div>
+            <div>
+              <p class="text-muted mb-0">Capacity</p>
+              <p><strong>${batch.students?.length || 0} / ${batch.max_students}</strong></p>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <p class="text-muted mb-0">Subjects</p>
+              <p><strong>${batch.subjects}</strong></p>
+            </div>
+          </div>
+          ${studentsHtml}
+        `;
+
+        openModal('viewBatchModal');
+      } catch (error) {
+        toast.error('Failed to load batch details');
+      }
+    }
+
+    async function saveBatch() {
+      if (!validateForm('batchForm')) return;
+
+      const id = document.getElementById('batchId').value;
+      const data = {
+        name: document.getElementById('batchName').value,
+        timing: document.getElementById('batchTiming').value,
+        subjects: document.getElementById('batchSubjects').value,
+        max_students: parseInt(document.getElementById('maxStudents').value)
+      };
+
+      try {
+        if (id) {
+          await api.batches.update(id, data);
+          toast.success('Batch updated successfully');
+        } else {
+          await api.batches.create(data);
+          toast.success('Batch created successfully');
+        }
+
+        closeModal('batchModal');
+        loadBatches();
+      } catch (error) {
+        toast.error(error.message || 'Failed to save batch');
+      }
+    }
+
+    async function deleteBatch(id) {
+      if (!await confirmAction('Are you sure you want to delete this batch?')) {
+        return;
+      }
+
+      try {
+        await api.batches.delete(id);
+        toast.success('Batch deleted successfully');
+        loadBatches();
+      } catch (error) {
+        toast.error(error.message || 'Failed to delete batch');
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadBatches);
+  </script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tuition Management System - Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1><i class="fas fa-graduation-cap"></i> TuitionHub</h1>
+      </div>
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="index.html" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="students.html"><i class="fas fa-users"></i> Students</a></li>
+          <li><a href="batches.html"><i class="fas fa-layer-group"></i> Batches</a></li>
+          <li><a href="fees.html"><i class="fas fa-rupee-sign"></i> Fees</a></li>
+          <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <div class="page-header">
+        <h2>Dashboard</h2>
+        <div class="header-actions">
+          <button class="btn btn-primary" onclick="location.href='students.html?action=add'">
+            <i class="fas fa-plus"></i> Add Student
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon students">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalStudents">-</h3>
+            <p>Total Students</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon batches">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalBatches">-</h3>
+            <p>Active Batches</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon fees">
+            <i class="fas fa-rupee-sign"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="collectedFees">-</h3>
+            <p>Fees Collected</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pending">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="pendingFees">-</h3>
+            <p>Pending Fees</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+        <!-- Recent Students -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-user-plus"></i> Recent Admissions</h3>
+            <a href="students.html" class="btn btn-sm btn-secondary">View All</a>
+          </div>
+          <div class="card-body" id="recentStudents">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Upcoming Dues -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-bell"></i> Upcoming Fee Dues</h3>
+            <a href="fees.html" class="btn btn-sm btn-secondary">View All</a>
+          </div>
+          <div class="card-body" id="upcomingDues">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overdue Alert -->
+      <div class="card mt-3" id="overdueSection" style="display: none;">
+        <div class="card-header" style="background: rgba(239, 68, 68, 0.1);">
+          <h3><i class="fas fa-exclamation-triangle text-danger"></i> Overdue Fees</h3>
+          <span class="badge badge-danger" id="overdueCount">0</span>
+        </div>
+        <div class="card-body" id="overdueFees">
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    // Load Dashboard Data
+    async function loadDashboard() {
+      try {
+        const response = await api.getDashboard();
+        const data = response.data;
+
+        // Update stats
+        document.getElementById('totalStudents').textContent = data.students.total;
+        document.getElementById('totalBatches').textContent = data.batches.total;
+        document.getElementById('collectedFees').textContent = formatCurrency(data.fees.collected);
+        document.getElementById('pendingFees').textContent = formatCurrency(data.fees.pending);
+
+        // Recent Students
+        renderRecentStudents(data.recentStudents);
+
+        // Upcoming Dues
+        renderUpcomingDues(data.upcomingDues);
+
+        // Check for overdue
+        if (data.fees.overdue > 0) {
+          document.getElementById('overdueSection').style.display = 'block';
+          document.getElementById('overdueCount').textContent = data.fees.overdue;
+          loadOverdueFees();
+        }
+
+      } catch (error) {
+        toast.error('Failed to load dashboard data');
+        console.error(error);
+      }
+    }
+
+    function renderRecentStudents(students) {
+      const container = document.getElementById('recentStudents');
+
+      if (!students || students.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding: 20px;">
+            <i class="fas fa-user-plus" style="font-size: 2rem;"></i>
+            <p>No recent admissions</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = students.map(student => `
+        <div class="list-item">
+          <div class="list-item-avatar">${getInitials(student.name)}</div>
+          <div class="list-item-content">
+            <h4>${student.name}</h4>
+            <p>Class ${student.class} • Admitted: ${formatDate(student.admission_date)}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderUpcomingDues(dues) {
+      const container = document.getElementById('upcomingDues');
+
+      if (!dues || dues.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding: 20px;">
+            <i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success-color);"></i>
+            <p>No upcoming dues</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = dues.map(fee => {
+        const days = daysUntilDue(fee.due_date);
+        return `
+          <div class="list-item">
+            <div class="list-item-avatar">${getInitials(fee.student_name)}</div>
+            <div class="list-item-content">
+              <h4>${fee.student_name}</h4>
+              <p>${formatCurrency(fee.amount - (fee.paid_amount || 0))} due on ${formatDate(fee.due_date)}</p>
+            </div>
+            <span class="badge ${days <= 3 ? 'badge-danger' : 'badge-warning'}">
+              ${days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days`}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadOverdueFees() {
+      try {
+        const response = await api.fees.getOverdue();
+        const container = document.getElementById('overdueFees');
+
+        if (!response.data || response.data.length === 0) {
+          container.innerHTML = '<p class="text-muted">No overdue fees</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Phone</th>
+                  <th>Amount Due</th>
+                  <th>Due Date</th>
+                  <th>Days Overdue</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${response.data.slice(0, 5).map(fee => {
+                  const daysOverdue = Math.abs(daysUntilDue(fee.due_date));
+                  return `
+                    <tr>
+                      <td>${fee.student_name}</td>
+                      <td>${fee.student_phone}</td>
+                      <td>${formatCurrency(fee.amount - (fee.paid_amount || 0))}</td>
+                      <td>${formatDate(fee.due_date)}</td>
+                      <td><span class="badge badge-danger">${daysOverdue} days</span></td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Failed to load overdue fees:', error);
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+  </script>
+</body>
+</html>

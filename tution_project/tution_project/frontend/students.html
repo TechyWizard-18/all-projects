@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Students - Tuition Management System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1><i class="fas fa-graduation-cap"></i> TuitionHub</h1>
+      </div>
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="students.html" class="active"><i class="fas fa-users"></i> Students</a></li>
+          <li><a href="batches.html"><i class="fas fa-layer-group"></i> Batches</a></li>
+          <li><a href="fees.html"><i class="fas fa-rupee-sign"></i> Fees</a></li>
+          <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <div class="page-header">
+        <h2>Students Management</h2>
+        <div class="header-actions">
+          <button class="btn btn-secondary" onclick="exportStudents()">
+            <i class="fas fa-download"></i> Export
+          </button>
+          <button class="btn btn-primary" onclick="openAddStudentModal()">
+            <i class="fas fa-plus"></i> Add Student
+          </button>
+        </div>
+      </div>
+
+      <!-- Search and Filters -->
+      <div class="card">
+        <div class="card-body">
+          <div class="search-box">
+            <div class="search-input">
+              <i class="fas fa-search"></i>
+              <input type="text" class="form-control" id="searchInput" placeholder="Search by name, phone or email...">
+            </div>
+            <div class="filter-group">
+              <select class="form-control" id="filterStatus" style="width: auto;">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <select class="form-control" id="filterBatch" style="width: auto;">
+                <option value="">All Batches</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Students Table -->
+      <div class="card">
+        <div class="card-body">
+          <div class="table-container" id="studentsTableContainer">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Student Modal -->
+  <div class="modal-overlay" id="studentModal">
+    <div class="modal" style="max-width: 750px;">
+      <div class="modal-header">
+        <h3 id="modalTitle">Add New Student</h3>
+        <button class="modal-close" onclick="closeModal('studentModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="studentForm">
+          <input type="hidden" id="studentId">
+
+          <h4 style="margin-bottom: 15px; color: var(--primary-color);"><i class="fas fa-user"></i> Personal Details</h4>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Full Name *</label>
+              <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Class *</label>
+              <input type="text" class="form-control" id="class" name="class" placeholder="e.g., 10th, 12th" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone *</label>
+              <input type="tel" class="form-control" id="phone" name="phone" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" name="email">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Parent/Guardian Name</label>
+              <input type="text" class="form-control" id="parent_name" name="parent_name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Parent Phone</label>
+              <input type="tel" class="form-control" id="parent_phone" name="parent_phone">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Address</label>
+            <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+          </div>
+
+          <h4 style="margin: 20px 0 15px; color: var(--primary-color);"><i class="fas fa-book"></i> Academic Details</h4>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Subjects *</label>
+              <input type="text" class="form-control" id="subjects" name="subjects" placeholder="e.g., Maths, Physics, Chemistry" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Batch</label>
+              <select class="form-control" id="batch_id" name="batch_id">
+                <option value="">Select Batch</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Admission Date *</label>
+              <input type="date" class="form-control" id="admission_date" name="admission_date" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-control" id="status" name="status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+
+          <h4 style="margin: 20px 0 15px; color: var(--success-color);" id="feesSectionTitle"><i class="fas fa-rupee-sign"></i> Fee Details</h4>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Monthly Fee Amount (₹) *</label>
+              <input type="number" class="form-control" id="monthly_fee" name="monthly_fee" placeholder="e.g., 2000" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fee Paid at Admission (₹)</label>
+              <input type="number" class="form-control" id="fee_paid" name="fee_paid" placeholder="Amount paid now" min="0" value="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Fee Due Date</label>
+              <input type="date" class="form-control" id="fee_due_date" name="fee_due_date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Method</label>
+              <select class="form-control" id="payment_method" name="payment_method">
+                <option value="cash">Cash</option>
+                <option value="upi">UPI</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="card">Card</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Any additional notes..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('studentModal')">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveStudent()">
+          <i class="fas fa-save"></i> Save Student
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Student Modal -->
+  <div class="modal-overlay" id="viewStudentModal">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Student Details</h3>
+        <button class="modal-close" onclick="closeModal('viewStudentModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="studentDetails">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('viewStudentModal')">Close</button>
+        <button type="button" class="btn btn-primary" id="editFromViewBtn">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    let allStudents = [];
+    let allBatches = [];
+    let isEditMode = false;
+
+    // Load initial data
+    async function loadData() {
+      try {
+        // Load batches for dropdown
+        const batchesResponse = await api.batches.getAll();
+        allBatches = batchesResponse.data;
+        populateBatchDropdowns();
+
+        // Load students
+        await loadStudents();
+      } catch (error) {
+        toast.error('Failed to load data');
+        console.error(error);
+      }
+    }
+
+    function populateBatchDropdowns() {
+      const filterSelect = document.getElementById('filterBatch');
+      const formSelect = document.getElementById('batch_id');
+
+      const options = allBatches.map(b => `<option value="${b.id}">${b.name} (${b.timing})</option>`).join('');
+
+      filterSelect.innerHTML = '<option value="">All Batches</option>' + options;
+      formSelect.innerHTML = '<option value="">Select Batch</option>' + options;
+    }
+
+    async function loadStudents() {
+      try {
+        const search = document.getElementById('searchInput').value;
+        const status = document.getElementById('filterStatus').value;
+        const batch_id = document.getElementById('filterBatch').value;
+
+        const params = {};
+        if (search) params.search = search;
+        if (status) params.status = status;
+        if (batch_id) params.batch_id = batch_id;
+
+        const response = await api.students.getAll(params);
+        allStudents = response.data;
+        renderStudentsTable();
+      } catch (error) {
+        toast.error('Failed to load students');
+        console.error(error);
+      }
+    }
+
+    function renderStudentsTable() {
+      const container = document.getElementById('studentsTableContainer');
+
+      if (allStudents.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-user-graduate"></i>
+            <h3>No Students Found</h3>
+            <p>Add your first student to get started</p>
+            <button class="btn btn-primary" onclick="openAddStudentModal()">
+              <i class="fas fa-plus"></i> Add Student
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Phone</th>
+              <th>Subjects</th>
+              <th>Batch</th>
+              <th>Monthly Fee</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allStudents.map(student => `
+              <tr>
+                <td>
+                  <div class="d-flex align-center gap-1">
+                    <div class="list-item-avatar" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                      ${getInitials(student.name)}
+                    </div>
+                    <span>${student.name}</span>
+                  </div>
+                </td>
+                <td>${student.class}</td>
+                <td>${student.phone}</td>
+                <td>${student.subjects}</td>
+                <td>${student.batch_name || '-'}</td>
+                <td>${student.monthly_fee ? formatCurrency(student.monthly_fee) : '-'}</td>
+                <td><span class="badge ${getStatusBadge(student.status)}">${student.status}</span></td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm btn-icon btn-secondary" onclick="viewStudent('${student.id}')" title="View">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-icon btn-primary" onclick="editStudent('${student.id}')" title="Edit">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-icon btn-danger" onclick="deleteStudent('${student.id}')" title="Delete">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function openAddStudentModal() {
+      isEditMode = false;
+      document.getElementById('modalTitle').textContent = 'Add New Student';
+      document.getElementById('studentId').value = '';
+      document.getElementById('feesSectionTitle').style.display = 'block';
+      resetForm('studentForm');
+      document.getElementById('admission_date').value = new Date().toISOString().split('T')[0];
+
+      // Set default due date to 10th of next month
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      nextMonth.setDate(10);
+      document.getElementById('fee_due_date').value = nextMonth.toISOString().split('T')[0];
+
+      document.getElementById('fee_paid').value = '0';
+      openModal('studentModal');
+    }
+
+    async function editStudent(id) {
+      try {
+        isEditMode = true;
+        const response = await api.students.getById(id);
+        const student = response.data;
+
+        document.getElementById('modalTitle').textContent = 'Edit Student';
+        document.getElementById('studentId').value = student.id;
+        document.getElementById('name').value = student.name;
+        document.getElementById('class').value = student.class;
+        document.getElementById('phone').value = student.phone;
+        document.getElementById('email').value = student.email || '';
+        document.getElementById('parent_name').value = student.parent_name || '';
+        document.getElementById('parent_phone').value = student.parent_phone || '';
+        document.getElementById('address').value = student.address || '';
+        document.getElementById('subjects').value = student.subjects;
+        document.getElementById('batch_id').value = student.batch_id || '';
+        document.getElementById('admission_date').value = student.admission_date;
+        document.getElementById('status').value = student.status;
+        document.getElementById('notes').value = student.notes || '';
+        document.getElementById('monthly_fee').value = student.monthly_fee || '';
+
+        // Hide fee payment fields in edit mode (use Fees page for payments)
+        document.getElementById('feesSectionTitle').innerHTML = '<i class="fas fa-rupee-sign"></i> Fee Details (Use Fees page to record payments)';
+
+        openModal('studentModal');
+      } catch (error) {
+        toast.error('Failed to load student details');
+      }
+    }
+
+    async function viewStudent(id) {
+      try {
+        const response = await api.students.getById(id);
+        const student = response.data;
+
+        document.getElementById('studentDetails').innerHTML = `
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div class="list-item-avatar" style="width: 80px; height: 80px; font-size: 2rem; margin: 0 auto;">
+              ${getInitials(student.name)}
+            </div>
+            <h3 style="margin-top: 10px;">${student.name}</h3>
+            <span class="badge ${getStatusBadge(student.status)}">${student.status}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <p class="text-muted mb-0">Class</p>
+              <p><strong>${student.class}</strong></p>
+            </div>
+            <div>
+              <p class="text-muted mb-0">Phone</p>
+              <p><strong>${student.phone}</strong></p>
+            </div>
+            <div>
+              <p class="text-muted mb-0">Email</p>
+              <p><strong>${student.email || '-'}</strong></p>
+            </div>
+            <div>
+              <p class="text-muted mb-0">Batch</p>
+              <p><strong>${student.batch_name || 'Not assigned'}</strong></p>
+            </div>
+            <div>
+              <p class="text-muted mb-0">Subjects</p>
+              <p><strong>${student.subjects}</strong></p>
+            </div>
+            <div>
+              <p class="text-muted mb-0">Admission Date</p>
+              <p><strong>${formatDate(student.admission_date)}</strong></p>
+            </div>
+            <div>
+              <p class="text-muted mb-0">Monthly Fee</p>
+              <p><strong>${student.monthly_fee ? formatCurrency(student.monthly_fee) : '-'}</strong></p>
+            </div>
+            <div>
+              <p class="text-muted mb-0">Parent Phone</p>
+              <p><strong>${student.parent_phone || '-'}</strong></p>
+            </div>
+          </div>
+          ${student.address ? `
+            <div style="margin-top: 16px;">
+              <p class="text-muted mb-0">Address</p>
+              <p><strong>${student.address}</strong></p>
+            </div>
+          ` : ''}
+          ${student.notes ? `
+            <div style="margin-top: 16px;">
+              <p class="text-muted mb-0">Notes</p>
+              <p><strong>${student.notes}</strong></p>
+            </div>
+          ` : ''}
+        `;
+
+        document.getElementById('editFromViewBtn').onclick = () => {
+          closeModal('viewStudentModal');
+          editStudent(id);
+        };
+
+        openModal('viewStudentModal');
+      } catch (error) {
+        toast.error('Failed to load student details');
+      }
+    }
+
+    async function saveStudent() {
+      if (!validateForm('studentForm')) return;
+
+      const id = document.getElementById('studentId').value;
+      const data = getFormData('studentForm');
+
+      try {
+        if (id) {
+          // Update student (without creating new fee record)
+          await api.students.update(id, data);
+          toast.success('Student updated successfully');
+        } else {
+          // Create student with fee record
+          const result = await api.students.create(data);
+
+          // If fee info provided, create fee record
+          const monthlyFee = parseFloat(data.monthly_fee);
+          const feePaid = parseFloat(data.fee_paid) || 0;
+          const feeDueDate = data.fee_due_date;
+
+          if (monthlyFee > 0 && result.data && result.data.id) {
+            const currentMonth = getCurrentMonthYear();
+            await api.fees.create({
+              student_id: result.data.id,
+              amount: monthlyFee,
+              due_date: feeDueDate || new Date().toISOString().split('T')[0],
+              month: currentMonth.month,
+              year: currentMonth.year,
+              notes: 'Initial fee at admission'
+            });
+
+            // If fee was paid, record the payment
+            if (feePaid > 0) {
+              const feeResponse = await api.fees.getByStudent(result.data.id);
+              if (feeResponse.data && feeResponse.data.length > 0) {
+                await api.fees.recordPayment(feeResponse.data[0].id, {
+                  paid_amount: feePaid,
+                  payment_method: data.payment_method || 'cash',
+                  notes: 'Paid at admission'
+                });
+              }
+            }
+          }
+          toast.success('Student added successfully');
+        }
+
+        closeModal('studentModal');
+        loadStudents();
+      } catch (error) {
+        toast.error(error.message || 'Failed to save student');
+      }
+    }
+
+    async function deleteStudent(id) {
+      if (!await confirmAction('Are you sure you want to delete this student? This action cannot be undone.')) {
+        return;
+      }
+
+      try {
+        await api.students.delete(id);
+        toast.success('Student deleted successfully');
+        loadStudents();
+      } catch (error) {
+        toast.error(error.message || 'Failed to delete student');
+      }
+    }
+
+    async function exportStudents() {
+      try {
+        const data = await api.exportData('students');
+        exportToCSV(data, 'students_export.csv');
+        toast.success('Students exported successfully');
+      } catch (error) {
+        toast.error('Failed to export students');
+      }
+    }
+
+    // Event listeners for search and filters
+    document.getElementById('searchInput').addEventListener('input', debounce(loadStudents, 300));
+    document.getElementById('filterStatus').addEventListener('change', loadStudents);
+    document.getElementById('filterBatch').addEventListener('change', loadStudents);
+
+    // Check for URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'add') {
+      setTimeout(openAddStudentModal, 500);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>

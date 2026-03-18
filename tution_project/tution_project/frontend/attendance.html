@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance - Tuition Management System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1><i class="fas fa-graduation-cap"></i> TuitionHub</h1>
+      </div>
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="students.html"><i class="fas fa-users"></i> Students</a></li>
+          <li><a href="batches.html"><i class="fas fa-layer-group"></i> Batches</a></li>
+          <li><a href="fees.html"><i class="fas fa-rupee-sign"></i> Fees</a></li>
+          <li><a href="attendance.html" class="active"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+          <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <div class="page-header">
+        <h2>Attendance Management</h2>
+      </div>
+
+      <!-- Date and Batch Selection -->
+      <div class="card">
+        <div class="card-body">
+          <div class="form-row" style="align-items: flex-end;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Select Date</label>
+              <input type="date" class="form-control" id="attendanceDate" style="width: 200px;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Select Batch</label>
+              <select class="form-control" id="attendanceBatch" style="width: 250px;">
+                <option value="">Select a batch</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="loadAttendance()">
+              <i class="fas fa-search"></i> Load
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Form -->
+      <div class="card mt-3" id="attendanceCard" style="display: none;">
+        <div class="card-header">
+          <h3><i class="fas fa-clipboard-list"></i> Mark Attendance - <span id="batchName"></span></h3>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-secondary" onclick="markAll('present')">
+              <i class="fas fa-check-double"></i> All Present
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="markAll('absent')">
+              <i class="fas fa-times"></i> All Absent
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="attendance-grid" id="attendanceList">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-success" onclick="saveAttendance()">
+              <i class="fas fa-save"></i> Save Attendance
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance History -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h3><i class="fas fa-history"></i> Recent Attendance Records</h3>
+        </div>
+        <div class="card-body">
+          <div class="table-container" id="attendanceHistory">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    let allBatches = [];
+    let currentStudents = [];
+    let selectedBatchId = null;
+
+    async function loadInitialData() {
+      try {
+        // Set today's date
+        document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
+
+        // Load batches
+        const batchesResponse = await api.batches.getAll();
+        allBatches = batchesResponse.data;
+
+        const batchSelect = document.getElementById('attendanceBatch');
+        batchSelect.innerHTML = '<option value="">Select a batch</option>' +
+          allBatches.map(b => `<option value="${b.id}">${b.name} (${b.timing})</option>`).join('');
+
+        // Load attendance history
+        await loadAttendanceHistory();
+      } catch (error) {
+        toast.error('Failed to load data');
+        console.error(error);
+      }
+    }
+
+    async function loadAttendance() {
+      const date = document.getElementById('attendanceDate').value;
+      const batchId = document.getElementById('attendanceBatch').value;
+
+      if (!date) {
+        toast.warning('Please select a date');
+        return;
+      }
+      if (!batchId) {
+        toast.warning('Please select a batch');
+        return;
+      }
+
+      selectedBatchId = batchId;
+      const batch = allBatches.find(b => b.id == batchId);
+
+      try {
+        const response = await api.attendance.getBatchAttendance(batchId, date);
+        currentStudents = response.data;
+
+        if (currentStudents.length === 0) {
+          toast.warning('No students found in this batch');
+          document.getElementById('attendanceCard').style.display = 'none';
+          return;
+        }
+
+        document.getElementById('batchName').textContent = `${batch.name} - ${formatDate(date)}`;
+        document.getElementById('attendanceCard').style.display = 'block';
+
+        renderAttendanceForm();
+      } catch (error) {
+        toast.error('Failed to load attendance');
+        console.error(error);
+      }
+    }
+
+    function renderAttendanceForm() {
+      const container = document.getElementById('attendanceList');
+
+      container.innerHTML = currentStudents.map(student => `
+        <div class="attendance-item" data-student-id="${student.id}">
+          <div class="student-info">
+            <div class="list-item-avatar" style="width: 36px; height: 36px; font-size: 0.8rem;">
+              ${getInitials(student.name)}
+            </div>
+            <div>
+              <strong>${student.name}</strong>
+              <br><small class="text-muted">Class ${student.class}</small>
+            </div>
+          </div>
+          <div class="attendance-options">
+            <label class="present ${student.status === 'present' ? 'selected' : ''}">
+              <input type="radio" name="attendance_${student.id}" value="present" ${student.status === 'present' ? 'checked' : ''}>
+              <span><i class="fas fa-check"></i> Present</span>
+            </label>
+            <label class="absent ${student.status === 'absent' ? 'selected' : ''}">
+              <input type="radio" name="attendance_${student.id}" value="absent" ${student.status === 'absent' ? 'checked' : ''}>
+              <span><i class="fas fa-times"></i> Absent</span>
+            </label>
+            <label class="late ${student.status === 'late' ? 'selected' : ''}">
+              <input type="radio" name="attendance_${student.id}" value="late" ${student.status === 'late' ? 'checked' : ''}>
+              <span><i class="fas fa-clock"></i> Late</span>
+            </label>
+          </div>
+        </div>
+      `).join('');
+
+      // Add change listeners for visual feedback
+      container.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+          const item = this.closest('.attendance-item');
+          item.querySelectorAll('label').forEach(label => label.classList.remove('selected'));
+          this.closest('label').classList.add('selected');
+        });
+      });
+    }
+
+    function markAll(status) {
+      document.querySelectorAll(`input[value="${status}"]`).forEach(radio => {
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change'));
+      });
+    }
+
+    async function saveAttendance() {
+      const date = document.getElementById('attendanceDate').value;
+      const attendanceData = [];
+
+      currentStudents.forEach(student => {
+        const selectedRadio = document.querySelector(`input[name="attendance_${student.id}"]:checked`);
+        if (selectedRadio) {
+          attendanceData.push({
+            student_id: student.id,
+            status: selectedRadio.value
+          });
+        }
+      });
+
+      if (attendanceData.length === 0) {
+        toast.warning('Please mark attendance for at least one student');
+        return;
+      }
+
+      try {
+        await api.attendance.markAttendance({
+          date: date,
+          batch_id: selectedBatchId,
+          attendance_data: attendanceData
+        });
+
+        toast.success('Attendance saved successfully');
+        loadAttendanceHistory();
+      } catch (error) {
+        toast.error('Failed to save attendance');
+        console.error(error);
+      }
+    }
+
+    async function loadAttendanceHistory() {
+      try {
+        const response = await api.attendance.getAll();
+        const records = response.data;
+
+        const container = document.getElementById('attendanceHistory');
+
+        if (!records || records.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state" style="padding: 40px;">
+              <i class="fas fa-calendar-times"></i>
+              <h3>No Attendance Records</h3>
+              <p>Mark attendance to see records here</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Group by date
+        const groupedByDate = {};
+        records.forEach(record => {
+          if (!groupedByDate[record.date]) {
+            groupedByDate[record.date] = [];
+          }
+          groupedByDate[record.date].push(record);
+        });
+
+        const dates = Object.keys(groupedByDate).sort((a, b) => new Date(b) - new Date(a)).slice(0, 7);
+
+        container.innerHTML = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Batch</th>
+                <th>Student</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dates.flatMap(date => {
+                return groupedByDate[date].slice(0, 5).map((record, idx) => `
+                  <tr>
+                    ${idx === 0 ? `<td rowspan="${Math.min(groupedByDate[date].length, 5)}"><strong>${formatDate(date)}</strong></td>` : ''}
+                    <td>${record.batch_name || '-'}</td>
+                    <td>${record.student_name}</td>
+                    <td><span class="badge ${getStatusBadge(record.status)}">${record.status}</span></td>
+                  </tr>
+                `).join('');
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (error) {
+        console.error('Failed to load attendance history:', error);
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadInitialData);
+  </script>
+</body>
+</html>

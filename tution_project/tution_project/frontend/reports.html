@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports - Tuition Management System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .report-card {
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .report-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .report-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+    .chart-container {
+      height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 20px;
+      height: 250px;
+      padding: 20px;
+    }
+    .bar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    .bar {
+      width: 40px;
+      background: var(--primary-color);
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+    }
+    .bar-label {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      text-align: center;
+    }
+    .bar-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h1><i class="fas fa-graduation-cap"></i> TuitionHub</h1>
+      </div>
+      <nav>
+        <ul class="sidebar-nav">
+          <li><a href="index.html"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li><a href="students.html"><i class="fas fa-users"></i> Students</a></li>
+          <li><a href="batches.html"><i class="fas fa-layer-group"></i> Batches</a></li>
+          <li><a href="fees.html"><i class="fas fa-rupee-sign"></i> Fees</a></li>
+          <li><a href="reports.html" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <div class="page-header">
+        <h2>Reports & Analytics</h2>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon students">
+            <i class="fas fa-user-graduate"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalStudents">-</h3>
+            <p>Total Students</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon batches">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="totalBatches">-</h3>
+            <p>Active Batches</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon fees">
+            <i class="fas fa-rupee-sign"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="collectionRate">-</h3>
+            <p>Fee Collection Rate</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: rgba(14, 165, 233, 0.1); color: var(--secondary-color);">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="stat-content">
+            <h3 id="avgAttendance">-</h3>
+            <p>Avg Attendance</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+        <!-- Students by Class -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-chart-bar"></i> Students by Class</h3>
+          </div>
+          <div class="card-body">
+            <div class="bar-chart" id="studentsByClassChart">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fee Collection Summary -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fas fa-chart-pie"></i> Fee Collection Summary</h3>
+          </div>
+          <div class="card-body">
+            <div id="feeCollectionSummary">
+              <div class="loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Reports -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h3><i class="fas fa-file-alt"></i> Available Reports</h3>
+        </div>
+        <div class="card-body">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <div class="card report-card" onclick="generateReport('students')">
+              <div class="card-body text-center">
+                <div class="report-icon" style="background: rgba(79, 70, 229, 0.1); color: var(--primary-color); margin: 0 auto;">
+                  <i class="fas fa-users"></i>
+                </div>
+                <h4>Student List</h4>
+                <p class="text-muted">Complete list of all students with details</p>
+              </div>
+            </div>
+
+            <div class="card report-card" onclick="generateReport('fees')">
+              <div class="card-body text-center">
+                <div class="report-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color); margin: 0 auto;">
+                  <i class="fas fa-file-invoice-dollar"></i>
+                </div>
+                <h4>Fee Report</h4>
+                <p class="text-muted">Detailed fee collection report</p>
+              </div>
+            </div>
+
+            <div class="card report-card" onclick="generateReport('overdue')">
+              <div class="card-body text-center">
+                <div class="report-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger-color); margin: 0 auto;">
+                  <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <h4>Overdue Fees</h4>
+                <p class="text-muted">List of students with overdue payments</p>
+              </div>
+            </div>
+
+            <div class="card report-card" onclick="generateReport('batches')">
+              <div class="card-body text-center">
+                <div class="report-icon" style="background: rgba(14, 165, 233, 0.1); color: var(--secondary-color); margin: 0 auto;">
+                  <i class="fas fa-layer-group"></i>
+                </div>
+                <h4>Batch Report</h4>
+                <p class="text-muted">Batch-wise student distribution</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fee Defaulters List -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h3><i class="fas fa-user-times text-danger"></i> Fee Defaulters</h3>
+        </div>
+        <div class="card-body">
+          <div class="table-container" id="defaultersList">
+            <div class="loading"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    async function loadReportData() {
+      try {
+        // Load dashboard stats
+        const dashboardResponse = await api.getDashboard();
+        const dashboard = dashboardResponse.data;
+
+        document.getElementById('totalStudents').textContent = dashboard.students.total;
+        document.getElementById('totalBatches').textContent = dashboard.batches.total;
+
+        // Calculate collection rate
+        const collectionRate = dashboard.fees.total > 0
+          ? Math.round((dashboard.fees.collected / dashboard.fees.total) * 100)
+          : 0;
+        document.getElementById('collectionRate').textContent = collectionRate + '%';
+
+        // For now, set placeholder for attendance
+        document.getElementById('avgAttendance').textContent = '-';
+
+        // Load student stats for chart
+        const studentStats = await api.students.getStats();
+        renderStudentsByClassChart(studentStats.data.byClass);
+
+        // Load fee stats
+        const feeStats = await api.fees.getStats();
+        renderFeeCollectionSummary(feeStats.data);
+
+        // Load defaulters
+        loadDefaulters();
+
+      } catch (error) {
+        console.error('Failed to load report data:', error);
+        toast.error('Failed to load report data');
+      }
+    }
+
+    function renderStudentsByClassChart(data) {
+      const container = document.getElementById('studentsByClassChart');
+
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No data available</p>';
+        return;
+      }
+
+      const maxCount = Math.max(...data.map(d => d.count));
+
+      container.innerHTML = data.map(item => {
+        const height = maxCount > 0 ? (item.count / maxCount) * 200 : 0;
+        return `
+          <div class="bar-item">
+            <span class="bar-value">${item.count}</span>
+            <div class="bar" style="height: ${height}px;"></div>
+            <span class="bar-label">Class ${item.class}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderFeeCollectionSummary(stats) {
+      const container = document.getElementById('feeCollectionSummary');
+
+      const collected = stats.collectedAmount || 0;
+      const pending = stats.pendingAmount || 0;
+      const total = stats.totalAmount || 0;
+      const collectedPercent = total > 0 ? Math.round((collected / total) * 100) : 0;
+      const pendingPercent = total > 0 ? Math.round((pending / total) * 100) : 0;
+
+      container.innerHTML = `
+        <div style="padding: 20px;">
+          <div style="display: flex; gap: 40px; margin-bottom: 30px;">
+            <div style="flex: 1;">
+              <h2 style="color: var(--success-color); margin-bottom: 5px;">${formatCurrency(collected)}</h2>
+              <p class="text-muted">Collected (${collectedPercent}%)</p>
+            </div>
+            <div style="flex: 1;">
+              <h2 style="color: var(--warning-color); margin-bottom: 5px;">${formatCurrency(pending)}</h2>
+              <p class="text-muted">Pending (${pendingPercent}%)</p>
+            </div>
+          </div>
+
+          <div style="background: var(--gray-200); height: 24px; border-radius: 12px; overflow: hidden;">
+            <div style="width: ${collectedPercent}%; height: 100%; background: linear-gradient(90deg, var(--success-color), #34d399);"></div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+            <span class="text-muted">Total: ${formatCurrency(total)}</span>
+            <span class="text-muted">Overdue: ${stats.counts.overdue} records</span>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadDefaulters() {
+      try {
+        const response = await api.fees.getOverdue();
+        const container = document.getElementById('defaultersList');
+
+        if (!response.data || response.data.length === 0) {
+          container.innerHTML = `
+            <div class="text-center" style="padding: 40px;">
+              <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+              <h3 style="margin-top: 15px; color: var(--gray-600);">No Defaulters!</h3>
+              <p class="text-muted">All students have paid on time</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Class</th>
+                <th>Phone</th>
+                <th>Amount Due</th>
+                <th>Due Date</th>
+                <th>Days Overdue</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${response.data.map(fee => {
+                const daysOverdue = Math.abs(daysUntilDue(fee.due_date));
+                return `
+                  <tr>
+                    <td><strong>${fee.student_name}</strong></td>
+                    <td>${fee.student_class || '-'}</td>
+                    <td>${fee.student_phone}</td>
+                    <td>${formatCurrency(fee.amount - (fee.paid_amount || 0))}</td>
+                    <td>${formatDate(fee.due_date)}</td>
+                    <td><span class="badge badge-danger">${daysOverdue} days</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (error) {
+        console.error('Failed to load defaulters:', error);
+      }
+    }
+
+    async function generateReport(type) {
+      try {
+        let data, filename;
+
+        switch (type) {
+          case 'students':
+            data = await api.exportData('students');
+            filename = 'students_report.csv';
+            break;
+          case 'fees':
+            data = await api.exportData('fees');
+            filename = 'fees_report.csv';
+            break;
+          case 'overdue':
+            const response = await api.fees.getOverdue();
+            data = response.data.map(f => ({
+              student_name: f.student_name,
+              class: f.student_class,
+              phone: f.student_phone,
+              amount_due: f.amount - (f.paid_amount || 0),
+              due_date: f.due_date,
+              days_overdue: Math.abs(daysUntilDue(f.due_date))
+            }));
+            filename = 'overdue_fees_report.csv';
+            break;
+          case 'batches':
+            const batchResponse = await api.batches.getAll();
+            data = batchResponse.data.map(b => ({
+              batch_name: b.name,
+              timing: b.timing,
+              subjects: b.subjects,
+              student_count: b.student_count,
+              max_students: b.max_students,
+              occupancy: Math.round((b.student_count / b.max_students) * 100) + '%'
+            }));
+            filename = 'batches_report.csv';
+            break;
+          default:
+            toast.error('Unknown report type');
+            return;
+        }
+
+        if (data && data.length > 0) {
+          exportToCSV(data, filename);
+          toast.success('Report downloaded successfully');
+        } else {
+          toast.warning('No data available for this report');
+        }
+      } catch (error) {
+        toast.error('Failed to generate report');
+        console.error(error);
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', loadReportData);
+  </script>
+</body>
+</html>
