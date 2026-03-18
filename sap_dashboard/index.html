@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAP Business One Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-cube"></i>
+                <span>SAP B1</span>
+            </div>
+            <button class="toggle-btn" id="toggleSidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item active" data-section="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </li>
+            <li class="nav-item" data-section="sales">
+                <i class="fas fa-chart-line"></i>
+                <span>Sales Analytics</span>
+            </li>
+            <li class="nav-item" data-section="inventory">
+                <i class="fas fa-boxes"></i>
+                <span>Inventory</span>
+            </li>
+            <li class="nav-item" data-section="finance">
+                <i class="fas fa-dollar-sign"></i>
+                <span>Finance</span>
+            </li>
+            <li class="nav-item" data-section="purchasing">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Purchasing</span>
+            </li>
+            <li class="nav-item" data-section="customers">
+                <i class="fas fa-users"></i>
+                <span>Customers</span>
+            </li>
+            <li class="nav-item" data-section="reports">
+                <i class="fas fa-file-alt"></i>
+                <span>Reports</span>
+            </li>
+            <li class="nav-item" data-section="settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="connection-status" id="connectionStatus">
+                <i class="fas fa-circle"></i>
+                <span>Disconnected</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search transactions, customers, products...">
+            </div>
+            <div class="header-actions">
+                <div class="date-filter">
+                    <label>Period:</label>
+                    <select id="periodFilter">
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month" selected>This Month</option>
+                        <option value="quarter">This Quarter</option>
+                        <option value="year">This Year</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+                <button class="refresh-btn" id="refreshData">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">5</span>
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff" alt="User">
+                    <span>Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section class="content-section active" id="section-dashboard">
+            <div class="section-header">
+                <h1>Executive Dashboard</h1>
+                <p class="last-updated">Last updated: <span id="lastUpdate"></span></p>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon sales">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Total Revenue</h3>
+                        <p class="kpi-value" id="totalRevenue">$0</p>
+                        <span class="kpi-change positive">
+                            <i class="fas fa-arrow-up"></i> 12.5%
+                        </span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon orders">
+                        <i class="fas fa-shopping-bag"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Total Orders</h3>
+                        <p class="kpi-value" id="totalOrders">0</p>
+                        <span class="kpi-change positive">
+                            <i class="fas fa-arrow-up"></i> 8.3%
+                        </span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon customers">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>New Customers</h3>
+                        <p class="kpi-value" id="newCustomers">0</p>
+                        <span class="kpi-change positive">
+                            <i class="fas fa-arrow-up"></i> 5.2%
+                        </span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon profit">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Gross Profit</h3>
+                        <p class="kpi-value" id="grossProfit">$0</p>
+                        <span class="kpi-change negative">
+                            <i class="fas fa-arrow-down"></i> 2.1%
+                        </span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon inventory">
+                        <i class="fas fa-warehouse"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Inventory Value</h3>
+                        <p class="kpi-value" id="inventoryValue">$0</p>
+                        <span class="kpi-change neutral">
+                            <i class="fas fa-minus"></i> 0.5%
+                        </span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon pending">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Pending Orders</h3>
+                        <p class="kpi-value" id="pendingOrders">0</p>
+                        <span class="kpi-change warning">
+                            <i class="fas fa-exclamation"></i> Action Needed
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-grid">
+                <div class="chart-card large">
+                    <div class="chart-header">
+                        <h3>Sales Trend</h3>
+                        <div class="chart-actions">
+                            <button class="chart-btn active" data-chart="revenue">Revenue</button>
+                            <button class="chart-btn" data-chart="orders">Orders</button>
+                            <button class="chart-btn" data-chart="profit">Profit</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Sales by Category</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second Charts Row -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Top Selling Products</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="topProductsChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Regional Sales</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="regionalChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Payment Methods</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="paymentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tables Row -->
+            <div class="tables-grid">
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3>Recent Orders</h3>
+                        <a href="#" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentOrdersTable">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3>Low Stock Alerts</h3>
+                        <a href="#" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Item Code</th>
+                                <th>Description</th>
+                                <th>In Stock</th>
+                                <th>Reorder Level</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lowStockTable">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Alerts & Activities -->
+            <div class="alerts-grid">
+                <div class="alert-card">
+                    <div class="alert-header">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Alerts & Notifications</h3>
+                    </div>
+                    <div class="alert-list" id="alertsList">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="activity-card">
+                    <div class="activity-header">
+                        <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                    </div>
+                    <div class="activity-list" id="activityList">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sales Analytics Section -->
+        <section class="content-section" id="section-sales">
+            <div class="section-header">
+                <h1>Sales Analytics</h1>
+            </div>
+            <div class="analytics-filters">
+                <div class="filter-group">
+                    <label>Date Range:</label>
+                    <input type="date" id="salesStartDate">
+                    <span>to</span>
+                    <input type="date" id="salesEndDate">
+                </div>
+                <div class="filter-group">
+                    <label>Sales Rep:</label>
+                    <select id="salesRepFilter">
+                        <option value="all">All Representatives</option>
+                        <option value="rep1">John Smith</option>
+                        <option value="rep2">Jane Doe</option>
+                        <option value="rep3">Mike Johnson</option>
+                    </select>
+                </div>
+                <button class="apply-btn">Apply Filters</button>
+            </div>
+            <div class="kpi-grid small">
+                <div class="kpi-card mini">
+                    <h4>Sales This Month</h4>
+                    <p class="kpi-value">$284,500</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Average Order Value</h4>
+                    <p class="kpi-value">$1,245</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Conversion Rate</h4>
+                    <p class="kpi-value">24.8%</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Returns Rate</h4>
+                    <p class="kpi-value">3.2%</p>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card large">
+                    <div class="chart-header">
+                        <h3>Sales Performance by Rep</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="salesRepChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Sales Funnel</h3>
+                    </div>
+                    <div class="funnel-chart" id="salesFunnel">
+                        <div class="funnel-stage" style="--width: 100%;">
+                            <span>Leads: 1,250</span>
+                        </div>
+                        <div class="funnel-stage" style="--width: 75%;">
+                            <span>Qualified: 938</span>
+                        </div>
+                        <div class="funnel-stage" style="--width: 50%;">
+                            <span>Proposals: 625</span>
+                        </div>
+                        <div class="funnel-stage" style="--width: 30%;">
+                            <span>Negotiations: 375</span>
+                        </div>
+                        <div class="funnel-stage" style="--width: 15%;">
+                            <span>Closed: 188</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Inventory Section -->
+        <section class="content-section" id="section-inventory">
+            <div class="section-header">
+                <h1>Inventory Management</h1>
+            </div>
+            <div class="kpi-grid small">
+                <div class="kpi-card mini">
+                    <h4>Total Items</h4>
+                    <p class="kpi-value" id="totalItems">2,456</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Stock Value</h4>
+                    <p class="kpi-value">$1.2M</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Low Stock Items</h4>
+                    <p class="kpi-value warning-text">48</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Out of Stock</h4>
+                    <p class="kpi-value danger-text">12</p>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Stock Levels by Warehouse</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="warehouseChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Inventory Turnover</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="turnoverChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Stock Age Analysis</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="stockAgeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="table-card full-width">
+                <div class="table-header">
+                    <h3>Inventory List</h3>
+                    <div class="table-actions">
+                        <input type="text" placeholder="Search items..." class="table-search">
+                        <button class="export-btn"><i class="fas fa-download"></i> Export</button>
+                    </div>
+                </div>
+                <table class="data-table" id="inventoryTable">
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Warehouse</th>
+                            <th>In Stock</th>
+                            <th>Reserved</th>
+                            <th>Available</th>
+                            <th>Unit Price</th>
+                            <th>Total Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+                <div class="table-pagination">
+                    <button class="page-btn"><i class="fas fa-chevron-left"></i></button>
+                    <span>Page 1 of 25</span>
+                    <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Finance Section -->
+        <section class="content-section" id="section-finance">
+            <div class="section-header">
+                <h1>Financial Overview</h1>
+            </div>
+            <div class="kpi-grid small">
+                <div class="kpi-card mini">
+                    <h4>Accounts Receivable</h4>
+                    <p class="kpi-value">$458,200</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Accounts Payable</h4>
+                    <p class="kpi-value">$312,800</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Cash Flow</h4>
+                    <p class="kpi-value positive-text">+$145,400</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Outstanding Invoices</h4>
+                    <p class="kpi-value">156</p>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card large">
+                    <div class="chart-header">
+                        <h3>Revenue vs Expenses</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueExpenseChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>AR Aging</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="arAgingChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Expense Breakdown</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="expenseBreakdownChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Profit Margins by Product Line</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="profitMarginChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Purchasing Section -->
+        <section class="content-section" id="section-purchasing">
+            <div class="section-header">
+                <h1>Purchasing & Procurement</h1>
+            </div>
+            <div class="kpi-grid small">
+                <div class="kpi-card mini">
+                    <h4>Open POs</h4>
+                    <p class="kpi-value">45</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>PO Value (MTD)</h4>
+                    <p class="kpi-value">$234,500</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Pending Deliveries</h4>
+                    <p class="kpi-value">28</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Vendor Count</h4>
+                    <p class="kpi-value">156</p>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Top Vendors by Spend</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="topVendorsChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Purchase Orders by Status</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="poStatusChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Monthly Procurement Trend</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="procurementTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Customers Section -->
+        <section class="content-section" id="section-customers">
+            <div class="section-header">
+                <h1>Customer Analytics</h1>
+            </div>
+            <div class="kpi-grid small">
+                <div class="kpi-card mini">
+                    <h4>Total Customers</h4>
+                    <p class="kpi-value">1,245</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Active Customers</h4>
+                    <p class="kpi-value">892</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Avg. Customer Value</h4>
+                    <p class="kpi-value">$4,580</p>
+                </div>
+                <div class="kpi-card mini">
+                    <h4>Retention Rate</h4>
+                    <p class="kpi-value">87.5%</p>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Top Customers by Revenue</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="topCustomersChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Customer Segments</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="customerSegmentChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Customer Acquisition</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="customerAcquisitionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reports Section -->
+        <section class="content-section" id="section-reports">
+            <div class="section-header">
+                <h1>Reports Center</h1>
+            </div>
+            <div class="reports-grid">
+                <div class="report-category">
+                    <h3><i class="fas fa-chart-bar"></i> Sales Reports</h3>
+                    <ul class="report-list">
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Sales Summary Report</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Sales by Customer</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Sales by Product</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Sales by Region</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Commission Report</a></li>
+                    </ul>
+                </div>
+                <div class="report-category">
+                    <h3><i class="fas fa-boxes"></i> Inventory Reports</h3>
+                    <ul class="report-list">
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Stock Status Report</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Inventory Valuation</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Stock Aging Report</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Reorder Report</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Serial Numbers Report</a></li>
+                    </ul>
+                </div>
+                <div class="report-category">
+                    <h3><i class="fas fa-dollar-sign"></i> Financial Reports</h3>
+                    <ul class="report-list">
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Profit & Loss Statement</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Balance Sheet</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Cash Flow Statement</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Trial Balance</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> AR Aging Report</a></li>
+                    </ul>
+                </div>
+                <div class="report-category">
+                    <h3><i class="fas fa-truck"></i> Purchasing Reports</h3>
+                    <ul class="report-list">
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Purchase Orders Report</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Vendor Analysis</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> AP Aging Report</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Goods Receipt Report</a></li>
+                        <li><a href="#"><i class="fas fa-file-pdf"></i> Price Comparison</a></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section class="content-section" id="section-settings">
+            <div class="section-header">
+                <h1>Dashboard Settings</h1>
+            </div>
+            <div class="settings-container">
+                <div class="settings-card">
+                    <h3><i class="fas fa-database"></i> Database Connection</h3>
+                    <form id="dbConnectionForm">
+                        <div class="form-group">
+                            <label>Server IP Address</label>
+                            <input type="text" id="serverIP" placeholder="e.g., 192.168.1.100">
+                        </div>
+                        <div class="form-group">
+                            <label>Database Name</label>
+                            <input type="text" id="dbName" placeholder="e.g., SBO_CompanyDB">
+                        </div>
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="dbUser" placeholder="Database username">
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="dbPassword" placeholder="Database password">
+                        </div>
+                        <div class="form-group">
+                            <label>Port</label>
+                            <input type="text" id="dbPort" placeholder="e.g., 30015" value="30015">
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn-test" id="testConnection">Test Connection</button>
+                            <button type="submit" class="btn-save">Save Configuration</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="settings-card">
+                    <h3><i class="fas fa-palette"></i> Display Settings</h3>
+                    <div class="form-group">
+                        <label>Theme</label>
+                        <select id="themeSelect">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Auto Refresh Interval</label>
+                        <select id="refreshInterval">
+                            <option value="0">Manual Only</option>
+                            <option value="30">30 Seconds</option>
+                            <option value="60">1 Minute</option>
+                            <option value="300" selected>5 Minutes</option>
+                            <option value="600">10 Minutes</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Default Currency</label>
+                        <select id="currencySelect">
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="GBP">GBP (£)</option>
+                            <option value="INR">INR (₹)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loader">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading data from SAP Business One...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="app.js"></script>
+    <script src="charts.js"></script>
+    <script src="data.js"></script>
+</body>
+</html>
+
